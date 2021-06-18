@@ -1,5 +1,5 @@
 import {createClient} from 'redis';
-import { AbstractPluginAliases, AbstractPluginData, AbstractPluginPerms, Database, PluginSlug } from './Structures';
+import { PluginAliases, AbstractPluginData, PluginPerms, Database, PluginSlug } from './Structures';
 
 export class OldDatabase implements Database {
     readonly db = createClient({db: 1});
@@ -54,7 +54,7 @@ export class OldDatabase implements Database {
         });
     }
 
-    getGuildPluginAliasesAndPerms<T extends AbstractPluginAliases, U extends AbstractPluginPerms>(guildID: string, plugin: string, defaultPluginAliases: T, defaultPluginPerms: U) {
+    getGuildPluginAliasesAndPerms<T extends PluginAliases, U extends PluginPerms>(guildID: string, plugin: string, defaultPluginAliases: T, defaultPluginPerms: U) {
         return new Promise<{aliases: T, perms: U}>((resolve, reject) => {
             this.db.sismember(`Guilds:${guildID}:Plugins`, plugin, (error, reply) => {
                 if (reply == 0) {
@@ -94,14 +94,14 @@ export class OldDatabase implements Database {
         });
     }
 
-    setGuildPluginAliases<T extends AbstractPluginAliases>(guildID: string, plugin: string, aliasesObject: T) {
+    setGuildPluginAliases<T extends PluginAliases>(guildID: string, plugin: string, aliasesObject: T) {
         return new Promise<void>((res, rej) => {
             this.db.hset(`Guilds:${guildID}:Plugins:${plugin}`, "Alias", JSON.stringify(aliasesObject));
             res();
         });
     }
 
-    setGuildPluginPerms<T extends AbstractPluginPerms>(guildID: string, plugin: string, permsObject: T) {
+    setGuildPluginPerms<T extends PluginPerms>(guildID: string, plugin: string, permsObject: T) {
         return new Promise<void>((res, rej) => {
             this.db.hset(`Guilds:${guildID}:Plugins:${plugin}`, "Perms", JSON.stringify(permsObject));
             res();

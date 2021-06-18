@@ -1,5 +1,5 @@
 import { createPool } from "mariadb"
-import { AbstractPluginAliases, AbstractPluginData, AbstractPluginPerms, Database, PluginSlug } from "./Structures";
+import { PluginAliases, AbstractPluginData, PluginPerms, Database, PluginSlug } from "./Structures";
 
 export class SQLDatabase implements Database {
     readonly mdb = createPool({host: "127.0.0.1", user: "wagyourbot", password: "123456", connectionLimit: 5, database: "WagYourBot", supportBigInt: true});
@@ -73,7 +73,7 @@ export class SQLDatabase implements Database {
     async getGuild(guildID: string, defaultPrefix: string): Promise<{ prefix: string; enabled: string[]; }> {
         const conn = await this.mdb.getConnection();
         try {
-            const res: {prefix: string | null, enabled: string[]}[] = (<{Plugins: string[], Prefix: string}[]>await conn.query("SELECT Plugins, Prefix FROM Guilds WHERE GuildID=?", [guildID])).map(e => {console.log(e); return {prefix: e.Prefix, enabled: e.Plugins}});
+            const res: {prefix: string | null, enabled: string[]}[] = (<{Plugins: string[], Prefix: string}[]>await conn.query("SELECT Plugins, Prefix FROM Guilds WHERE GuildID=?", [guildID])).map(e => {return {prefix: e.Prefix, enabled: e.Plugins}});
             if (res.length) {
                 if (res[0].prefix == null) res[0].prefix = defaultPrefix;
                 return <{prefix: string, enabled: string[]}>res[0];
@@ -96,7 +96,7 @@ export class SQLDatabase implements Database {
         }
     }
 
-    async getGuildPluginAliasesAndPerms<T extends AbstractPluginAliases, U extends AbstractPluginPerms>(guildID: string, plugin: string, defaultPluginAliases: T, defaultPluginPerms: U): Promise<{ aliases: T; perms: U; }> {
+    async getGuildPluginAliasesAndPerms<T extends PluginAliases, U extends PluginPerms>(guildID: string, plugin: string, defaultPluginAliases: T, defaultPluginPerms: U): Promise<{ aliases: T; perms: U; }> {
         const conn = await this.mdb.getConnection();
         try {
             const res = (<{Aliases: T | null, Perms: U | null}[]>await conn.query(`SELECT Aliases, Perms FROM Plugin${plugin} WHERE GuildID=?`, [guildID])).map(e => {return {aliases: e.Aliases, perms: e.Perms}});
@@ -145,7 +145,7 @@ export class SQLDatabase implements Database {
         }
     }
 
-    async setGuildPluginAliases<T extends AbstractPluginAliases>(guildID: string, plugin: string, aliases: T): Promise<void> {
+    async setGuildPluginAliases<T extends PluginAliases>(guildID: string, plugin: string, aliases: T): Promise<void> {
         const conn = await this.mdb.getConnection();
         try {
             conn.query(`INSERT INTO Plugin${plugin} VALUES (?, ?, null, null) ON DUPLICATE KEY UPDATE Aliases=?`, [guildID, aliases, aliases]);
@@ -154,7 +154,7 @@ export class SQLDatabase implements Database {
         }
     }
     
-    async setGuildPluginPerms<T extends AbstractPluginPerms>(guildID: string, plugin: string, perms: T): Promise<void> {
+    async setGuildPluginPerms<T extends PluginPerms>(guildID: string, plugin: string, perms: T): Promise<void> {
         const conn = await this.mdb.getConnection();
         try {
             conn.query(`INSERT INTO Plugin${plugin} VALUES (?, null, ?, null) ON DUPLICATE KEY UPDATE Perms=?`, [guildID, perms, perms]);
