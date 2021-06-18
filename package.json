@@ -1,0 +1,32 @@
+{
+  "name": "wagyourbot",
+  "version": "3.0.0",
+  "description": "discord bot, successor to QualityBot2",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wagyourtail/wagyourbot.git"
+  },
+  "keywords": [
+    "discord",
+    "bot"
+  ],
+  "author": "Wagyourtail",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/wagyourtail/wagyourbot/issues"
+  },
+  "homepage": "https://bot.wagyourtail.xyz/",
+  "dependencies": {
+    "@types/redis": "^2.8.29",
+    "@types/ws": "^7.4.5",
+    "discord.js": "^12.5.3",
+    "mariadb": "^2.5.3",
+    "redis": "^3.1.2",
+    "typescript": "^4.3.2"
+  }
+}
