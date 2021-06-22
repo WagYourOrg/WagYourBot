@@ -38,7 +38,7 @@ class Help extends Command {
             this.selfHelp(channel, guild, handler);
         }
     }
-    
+
 }
 
 class Permissions extends CommandTree {
@@ -313,8 +313,76 @@ class SetPrefix extends Command {
 
 }
 
+class Plugins extends CommandTree {
+    constructor() {
+        super("plugins", [], "plugins list\nplugins info **plugin**\nplugins enable **plugin**\nplugins disable **plugin**", "enables/disables plugin components.\n**plugin** is required and must be the name of the plugin.")
+    }
+
+    buildCommandTree(): void {
+        this.then("list", false, undefined, async (args, remainingContent, member, guild, channel, message, handler) => {
+            const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
+            const plugins = handler.plugins.map(e => e.name);
+            const reply = new RichEmbed()
+                .setTitle("Plugins: list");
+            const enable = plugins.filter(e => enabled.includes(e)).join("\n");
+            const disable = plugins.filter(e => !enabled.includes(e)).join("\n");
+            if (enable.length) reply.addField("Enabled", enable);
+            if (disable.length) reply.addField("Disabled", disable);
+            channel.send(reply);
+        })
+        .or("info")
+            .then("plugin", false, /\w+/, async (args, remainingContent, member, guild, channel, message, handler) => {
+                const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
+                const reply = new RichEmbed()
+                    .setTitle("Plugins: info");
+                const result = handler.plugins.filter(e => e.name.toLowerCase() === args.plugin[0]?.toLowerCase())[0];
+                if (result) {
+                    reply.setDescription(`${enabled.includes(result.name) ? "Enabled" : "Disabled"}`);
+                    reply.addField(result.name, result.description);
+                } else {
+                    reply.addField("Failed", "**Plugin** failed to parse.");
+                }
+                channel.send(reply);
+        })
+        .or("enable")
+            .then("plugin", false, /\w+/, async (args, remainingContent, member, guild, channel, message, handler) => {
+            const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
+            const reply = new RichEmbed()
+                .setTitle("Plugins: enable");
+            const result = handler.plugins.filter(e => e.name.toLowerCase() == args.plugin[0]?.toLowerCase());
+            if (result.length && !enabled.includes(result[0].name)) {
+                reply.setDescription(result[0].name);
+                handler.database.setGuildEnabled(<string>guild?.id, enabled.concat(result[0].name));
+            } else {
+                reply.addField("Failed", "**Plugin** failed to parse or is already enabled.");
+            }
+            channel.send(reply);
+
+        })
+        .or("disable")
+            .then("plugin", false, /\w+/, async (args, remainingContent, member, guild, channel, message, handler) => {
+                const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
+                const reply = new RichEmbed()
+                    .setTitle("Plugins: disable");
+                const result = handler.plugins.filter(e => e.name.toLowerCase() == args.plugin[0]?.toLowerCase());
+                if (result.length && !enabled.includes(result[0].name)) {
+                    reply.setDescription(result[0].name);
+                    handler.database.setGuildEnabled(<string>guild?.id, enabled.filter(e =>e !== result[0].name));
+                } else {
+                    reply.addField("Failed", "**Plugin** failed to parse or is already disabled.");
+                }
+                channel.send(reply);
+        })
+        .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
+            this.selfHelp(channel, guild, handler);
+        })
+    }
+    
+}
+
 export const plugin = new Plugin<HelpData>("Default", "Default enabled stuff, don't disable", {});
 plugin.addCommand(new Help());
 plugin.addCommand(new Permissions());
 plugin.addCommand(new Aliases());
 plugin.addCommand(new SetPrefix());
+plugin.addCommand(new Plugins());

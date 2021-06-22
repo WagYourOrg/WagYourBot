@@ -235,7 +235,7 @@ export abstract class CommandTree extends Command {
         return this;
     }
 
-    evalTree(current: CommandPart, prevArgs: ([CommandPart, string[] | string])[], remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): void {
+    private evalTree(current: CommandPart, prevArgs: ([CommandPart, string[] | string])[], remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): void {
         if (current.next !== undefined) {
             for (const nextPart of current.next) {
                 if (nextPart.match === undefined) {
