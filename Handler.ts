@@ -83,21 +83,21 @@ export class Plugin<T extends AbstractPluginData> {
         const { aliases, perms } = guildID ? await handler.database.getGuildPluginAliasesAndPerms(guildID, this.name, this.aliases, this.perms) : this;
         for (const command of this.commands) {
             if (content.startsWith(command.name)) {
-                if (!guildID && !command.allowDM) command.noDM(message.channel, handler);
-                if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name]) || message.author.id === handler.owner)) {
+                if (!guildID && !command.allowDM) command.noDM(message.channel);
+                if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                     await command.message(content.substring(command.name.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
                 } else {
-                    command.noPerms(message.channel, handler);
+                    command.noPerms(message.channel);
                 }
                 return true;
             }
-            for (const alias of aliases[command.name]) {
+            for (const alias of aliases[command.name] ?? command.aliases) {
                 if (content.startsWith(alias)) {
-                    if (!guildID && !command.allowDM) command.noDM(message.channel, handler);
-                    if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name]) || message.author.id === handler.owner)) {
+                    if (!guildID && !command.allowDM) command.noDM(message.channel);
+                    if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                         await command.message(content.substring(alias.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
                     } else {
-                        command.noPerms(message.channel, handler);
+                        command.noPerms(message.channel);
                     }
                     return true;
                 }
@@ -143,9 +143,9 @@ export abstract class Command {
         if (thumbnail) reply.setThumbnail(thumbnail);
         if (guild?.id) {
             const { aliases, perms } = await handler.database.getGuildPluginAliasesAndPerms(guild.id, this.plugin.name, this.plugin.aliases, this.plugin.perms);
-            if (aliases.length) reply.addField("Aliases", aliases[this.name].join(", "));
+            if (aliases.length) reply.addField("Aliases", (aliases[this.name] ?? this.aliases).join(", "));
             const roles = [];
-            for (const role of perms[this.name]) {
+            for (const role of perms[this.name] ?? this.perms) {
                 if (role === "@everyone") {
                     roles.push(role);
                     continue;
@@ -161,20 +161,120 @@ export abstract class Command {
         channel.send(reply);
     }
 
-    async noDM(channel: TextChannel | DMChannel | NewsChannel, handler: Handler) {
-        const reply = new RichEmbed()
-            .setTitle(this.name)
-            .setColor(0xFF0000)
-            .setDescription("Command Not Allowed In DM!");
+    async noDM(channel: TextChannel | DMChannel | NewsChannel) {
+        return this.sendError("Command Not Allowed In DM!", channel);
     }
 
-    async noPerms(channel: TextChannel | DMChannel | NewsChannel, handler: Handler) {
-        const reply = new RichEmbed()
+    async noPerms(channel: TextChannel | DMChannel | NewsChannel) {
+        return this.sendError("You Do Not Have Permission To Run This Command!", channel);
+    }
+
+    async sendError(error: string, channel: TextChannel | DMChannel | NewsChannel): Promise<Message> {
+        return await channel.send(new RichEmbed()
             .setTitle(this.name)
             .setColor(0xFF0000)
-            .setDescription("You Do Not Have Permission To Run This Command!");
+            .setDescription(error)
+        );
     }
 
     abstract message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): Promise<void>;
 
+}
+
+export interface CommandPart {
+    readonly name: string;
+    readonly match: RegExp | undefined;
+    eval: CommandEval | undefined;
+    next: CommandPart[] | undefined;
+    readonly allowDM: boolean;
+}
+
+export type CommandEval = (args: {[name: string]: (string | undefined)[] | string}, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+
+export abstract class CommandTree extends Command {
+    readonly head: CommandPart;
+    readonly parents: CommandPart[] = [];
+    current: CommandPart;
+
+    constructor(name="", aliases: string[]=[], usage="", description="", everyoneDefault=false, allowDM=false) {
+        super(name, aliases, usage, description, everyoneDefault, allowDM);
+        this.head = {name: "head", match: undefined, eval: undefined, next: undefined, allowDM: allowDM};
+        this.current = this.head;
+        this.buildCommandTree();
+        if (this.head.next === undefined) throw new Error(`no branches on "head" for command "${name}"`);
+    }
+
+    abstract buildCommandTree(): void;
+
+    defaultEval(evalContent: CommandEval) {
+        this.head.eval = evalContent;
+    }
+
+    then(name: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree {
+        this.parents.push(this.current);
+        const nextCurrent = {
+            name: name,
+            match: match,
+            eval: evalContent,
+            next: undefined,
+            allowDM: allowDM
+        }
+        if (this.current.next === undefined) {
+            this.current.next = [nextCurrent];
+        } else {
+            this.current.next.push(nextCurrent);
+        }
+        this.current = nextCurrent;
+        return this;
+    }
+
+    or(name?: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree {
+        if (!this.parents.length) throw Error("\"or\" on head...");
+        this.current = <CommandPart>this.parents.pop();
+        if (name) this.then(name, allowDM, match, evalContent);
+        return this;
+    }
+
+    evalTree(current: CommandPart, prevArgs: ([CommandPart, string[] | string])[], remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): void {
+        if (current.next !== undefined) {
+            for (const nextPart of current.next) {
+                if (nextPart.match === undefined) {
+                    if (remainingContent.startsWith(nextPart.name + " ") || remainingContent === nextPart.name) {
+                        if (!guild && !nextPart.allowDM) {
+                            this.noDM(channel);
+                            return;
+                        }
+                        prevArgs.push([nextPart, nextPart.name]);
+                        this.evalTree(nextPart, prevArgs, remainingContent.substring(nextPart.name.length).trim(), member, guild, channel, message, handler);
+                        return;
+                    }
+                } else {
+                    const match = remainingContent.match(nextPart.match);
+                    if (match) {
+                        if (!guild && !nextPart.allowDM) {
+                            this.noDM(channel);
+                            return;
+                        }
+                        prevArgs.push([nextPart, <string[]>match])
+                        this.evalTree(nextPart, prevArgs, remainingContent.substring(match[0].length).trim(), member, guild, channel, message, handler);
+                        return;
+                    }
+                }
+            }
+        }
+        if (current.eval === undefined) {
+            this.sendError(`Incomplete command ${prevArgs.map(e => e[0].name).join(" ")}`, channel);
+            return;
+        }
+        const args: {[name: string]: string[] | string} = {};
+        for (const [cmdPart, partArgs] of prevArgs) {
+            args[cmdPart.name] = partArgs;
+        }
+        current.eval(args, remainingContent, member, guild, channel, message, handler);
+        return;
+    }
+
+    async message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) {
+        this.evalTree(this.head, [], content, member, guild, channel, message, handler);
+    }
 }

@@ -34,10 +34,10 @@ export interface Database {
 }
 
 export interface PluginAliases {
-     [key: string]: string[];
+     [key: string]: string[] | undefined;
 }
 export interface PluginPerms {
-    [key: string]: string[];
+    [key: string]: string[] | undefined;
 }
 export interface AbstractPluginData {}
 
