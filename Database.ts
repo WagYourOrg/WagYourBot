@@ -175,7 +175,7 @@ export class SQLDatabase implements Database {
     async setGuildEnabled(guildID: string, plugins: string[]): Promise<void> {
         const conn = await this.mdb.getConnection();
         try {
-            conn.query("INSERT INTO Guilds VALUES (?, ?, null) ON DUPLICATE KEY UPDATE Plugins=?", [guildID, plugins, plugins]);
+            conn.query("INSERT INTO Guilds VALUES (?, ?, null) ON DUPLICATE KEY UPDATE Plugins=?", [guildID, JSON.stringify(plugins), JSON.stringify(plugins)]);
         } finally {
             conn.release();
         }

@@ -192,9 +192,9 @@ class Aliases extends CommandTree {
                     const {aliases} = (await handler.database.getGuildPluginAliasesAndPerms(<string>guild?.id, plugin.name, plugin.aliases, plugin.perms));
                     const commands = [];
                     for (const command of plugin.commands) {
-                        commands.push(`**${command}:** \`${aliases[command.name]?.join("` `") ?? plugin.aliases.length ? command.aliases.join("` `") : "none"}\``);
+                        commands.push(`**${command.name}:** \`${aliases[command.name]?.length ? aliases[command.name]?.join("`, `") : (plugin.aliases.length ? command.aliases.join("`, `") : "none")}\``);
                     }
-                    reply.addField(`**${plugin}**`, commands.join('\n'));
+                    reply.addField(`**${plugin.name}**`, commands.join('\n'));
                 }
             }
             channel.send(reply);
@@ -343,7 +343,7 @@ class Plugins extends CommandTree {
                     reply.addField("Failed", "**Plugin** failed to parse.");
                 }
                 channel.send(reply);
-        })
+        }).or()
         .or("enable")
             .then("plugin", false, /\w+/, async (args, remainingContent, member, guild, channel, message, handler) => {
             const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
@@ -358,7 +358,7 @@ class Plugins extends CommandTree {
             }
             channel.send(reply);
 
-        })
+        }).or()
         .or("disable")
             .then("plugin", false, /\w+/, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);

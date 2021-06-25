@@ -1,4 +1,4 @@
-import { MessageEmbedOptions, NewsChannel } from "discord.js";
+import { Channel, ClientUser, MessageEmbedOptions, MessageReaction, NewsChannel } from "discord.js";
 import { Client as BaseClient, Collection, DiscordAPIError, DMChannel, Emoji, Guild, GuildMember, Message, MessageEmbed, TextChannel, User } from "discord.js";
 import { SQLDatabase } from "./Database";
 import { PluginAliases, PluginPerms, Database, PluginSlug, AbstractPluginData } from "./Structures";
@@ -30,14 +30,14 @@ export abstract class Handler extends BaseClient {
                 content = content.substring(prefix.length);
                 for (const plugin of this.plugins) {
                     if (enabled.includes(plugin.name)) {
-                        if (plugin.tryHandleCommand(content, message, guildID, this)) return;
+                        if (await plugin.tryHandleCommand(content, message, guildID, this)) return;
                     }
                 }
             }
         } else {
             if (content.startsWith(this.defaultPrefix)) {
                 for (const plugin of this.plugins) {
-                    if (plugin.tryHandleCommand(content, message, guildID, this)) return;
+                    if (await plugin.tryHandleCommand(content, message, guildID, this)) return;
                 }
             }
         }
@@ -103,6 +103,7 @@ export class Plugin<T extends AbstractPluginData> {
                 }
             }
         }
+        console.log("false");
         return false;
     }
 }
@@ -179,6 +180,44 @@ export abstract class Command {
 
     abstract message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): Promise<void>;
 
+    /**
+     * do **not** await this... 
+     */
+    static async paginateData(channel: TextChannel | DMChannel | NewsChannel, handler: Handler, baseEmbed: RichEmbed, lines: string[], maxLines = 2000) {
+        let i = 0;
+        let j = 0;
+        const pages: string[][] = [[]];
+        for (const line of lines) {
+            if (j + line.length > 1999 || i >= maxLines) {
+                i = 1;
+                j = line.length + 1;
+                pages.push([line]);
+            } else {
+                ++i;
+                j += line.length + 1;
+                pages[pages.length - 1].push(line);
+            }
+        }
+        let currentPage = 0;
+        let maxPages = pages.length;
+        if (maxPages > 1) {
+            let message = await channel.send(new RichEmbed(baseEmbed).setDescription(pages[currentPage].join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
+            await message.react("⬅️");
+            await message.react("➡️");
+            let reaction: MessageReaction | null = null;
+            do {
+                reaction = Array.from((await message.awaitReactions((reaction) => ["⬅️", "➡️"].includes(reaction.emoji.name), {idle: 60000, max:1})).values())[0];
+                await reaction?.users.remove(Array.from(reaction?.users.cache.keys()).filter(e => e != (<ClientUser>handler.user).id)[0]);
+                if (currentPage > 0 && reaction?.emoji?.name === "⬅️") --currentPage;
+                else if (currentPage + 1 < maxPages && reaction?.emoji?.name === "➡️") ++currentPage;
+                else continue;
+                message.edit(new RichEmbed(baseEmbed).setDescription(pages[currentPage].join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
+            } while (reaction);
+            
+        } else {
+            channel.send(new RichEmbed(baseEmbed).setDescription(pages[0].join("\n")));
+        }
+    }
 }
 
 export interface CommandPart {
