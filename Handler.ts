@@ -103,7 +103,6 @@ export class Plugin<T extends AbstractPluginData> {
                 }
             }
         }
-        console.log("false");
         return false;
     }
 }
@@ -206,7 +205,7 @@ export abstract class Command {
             await message.react("➡️");
             let reaction: MessageReaction | null = null;
             do {
-                reaction = Array.from((await message.awaitReactions((reaction) => ["⬅️", "➡️"].includes(reaction.emoji.name), {idle: 60000, max:1})).values())[0];
+                reaction = [...(await message.awaitReactions((reaction) => ["⬅️", "➡️"].includes(reaction.emoji.name), {idle: 60000, max:1})).values()][0];
                 await reaction?.users.remove(Array.from(reaction?.users.cache.keys()).filter(e => e != (<ClientUser>handler.user).id)[0]);
                 if (currentPage > 0 && reaction?.emoji?.name === "⬅️") --currentPage;
                 else if (currentPage + 1 < maxPages && reaction?.emoji?.name === "➡️") ++currentPage;

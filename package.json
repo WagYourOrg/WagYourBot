@@ -24,6 +24,7 @@
   "dependencies": {
     "@types/redis": "^2.8.29",
     "@types/ws": "^7.4.5",
+    "aki-api.ts": "^1.0.1",
     "discord.js": "^12.5.3",
     "fs": "0.0.1-security",
     "mariadb": "^2.5.3",
