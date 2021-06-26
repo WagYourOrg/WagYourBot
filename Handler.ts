@@ -308,7 +308,7 @@ export abstract class CommandTree<T extends AbstractPluginData> extends Command<
             }
         }
         if (current.eval === undefined) {
-            this.sendError(`Incomplete command ${prevArgs.map(e => e[0].name).join(" ")}`, channel);
+            this.sendError(`Incomplete command \`${this.name} ${prevArgs.map(e => e[0].name).join(" ")}\`, expected next part \`${current.next?.map(e => e.name).join("|")}\``, channel);
             return;
         }
         const args: {[name: string]: string[] | string} = {};
