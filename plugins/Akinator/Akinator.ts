@@ -5,7 +5,7 @@ import { AbstractPluginData } from "../../Structures";
 
 interface AkinatorData extends AbstractPluginData {}
 
-class Akinator extends Command {
+class Akinator extends Command<AkinatorData> {
     constructor() {
         super("akinator", [], "akinator", "starts a game of akinator", true, true);
     }

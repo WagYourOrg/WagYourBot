@@ -24,27 +24,32 @@ export abstract class Handler extends BaseClient {
     async onMessage(message: Message) {
         const guildID = message.guild?.id;
         let content = message.content;
-        if (guildID) {
-            const {prefix, enabled} = await this.database.getGuild(guildID, this.defaultPrefix);
-            if (content.startsWith(prefix)) {
-                content = content.substring(prefix.length);
-                for (const plugin of this.plugins) {
-                    if (enabled.includes(plugin.name)) {
+        try {
+            if (guildID) {
+                const {prefix, enabled} = await this.database.getGuild(guildID, this.defaultPrefix);
+                if (content.startsWith(prefix)) {
+                    content = content.substring(prefix.length);
+                    for (const plugin of this.plugins) {
+                        if (enabled.includes(plugin.name)) {
+                            if (await plugin.tryHandleCommand(content, message, guildID, this)) return;
+                        }
+                    }
+                }
+            } else {
+                if (content.startsWith(this.defaultPrefix)) {
+                    for (const plugin of this.plugins) {
                         if (await plugin.tryHandleCommand(content, message, guildID, this)) return;
                     }
                 }
             }
-        } else {
-            if (content.startsWith(this.defaultPrefix)) {
-                for (const plugin of this.plugins) {
-                    if (await plugin.tryHandleCommand(content, message, guildID, this)) return;
-                }
-            }
+        } catch(error) {
+            message.channel.send(new RichEmbed().setTitle("AN ERROR HAS OCCURED").setDescription(`Debug data dumped: \`\`\`${error}\`\`\``).setColor(0xFF0000));
         }
     }
 
     registerPlugin(plugin: Plugin<any>) {
         this.plugins.push(plugin);
+        plugin.registerExtraListeners(this);
     }
 }
 
@@ -54,7 +59,7 @@ export class Plugin<T extends AbstractPluginData> {
     readonly aliases: PluginAliases = {};
     readonly perms: PluginPerms = {};
     readonly data: T;
-    readonly commands: Command[] = [];
+    readonly commands: Command<T>[] = [];
 
     constructor(name: PluginSlug="", description: string="", defaultData: T) {
         this.name = name;
@@ -62,11 +67,13 @@ export class Plugin<T extends AbstractPluginData> {
         this.data=defaultData;
     }
 
-    addCommand(command: Command) {
+    addCommand(command: Command<T>) {
         command.plugin = this;
         this.aliases[command.name] = command.aliases;
         this.commands.push(command);
     }
+
+    registerExtraListeners(handler: Handler) {}
 
     private static checkRoles(member: GuildMember, commandPerms: string[]): boolean {
         if (commandPerms.includes("@everyone")) return true;
@@ -82,7 +89,7 @@ export class Plugin<T extends AbstractPluginData> {
     async tryHandleCommand(content: string, message: Message, guildID: string | undefined, handler: Handler): Promise<boolean> {
         const { aliases, perms } = guildID ? await handler.database.getGuildPluginAliasesAndPerms(guildID, this.name, this.aliases, this.perms) : this;
         for (const command of this.commands) {
-            if (content.startsWith(command.name)) {
+            if (content === command.name || content.startsWith(command.name + " ")) {
                 if (!guildID && !command.allowDM) command.noDM(message.channel);
                 if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                     await command.message(content.substring(command.name.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
@@ -92,7 +99,7 @@ export class Plugin<T extends AbstractPluginData> {
                 return true;
             }
             for (const alias of aliases[command.name] ?? command.aliases) {
-                if (content.startsWith(alias)) {
+                if (content === alias || content.startsWith(alias + " ")) {
                     if (!guildID && !command.allowDM) command.noDM(message.channel);
                     if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                         await command.message(content.substring(alias.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
@@ -115,14 +122,14 @@ export class RichEmbed extends MessageEmbed {
     }
 }
 
-export abstract class Command {
+export abstract class Command<T extends AbstractPluginData> {
     readonly name;
     readonly aliases;
     readonly usage;
     readonly description;
     readonly perms: string[];
     readonly allowDM;
-    plugin!: Plugin<any>;
+    plugin!: Plugin<T>;
 
     constructor(name="", aliases: string[]=[], usage="", description="", everyoneDefault=false, allowDM=false) {
         this.name = name;
@@ -229,7 +236,7 @@ export interface CommandPart {
 
 export type CommandEval = (args: {[name: string]: (string | undefined)[] | string}, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 
-export abstract class CommandTree extends Command {
+export abstract class CommandTree<T extends AbstractPluginData> extends Command<T> {
     readonly head: CommandPart;
     readonly parents: CommandPart[] = [];
     current: CommandPart;
@@ -248,7 +255,7 @@ export abstract class CommandTree extends Command {
         this.head.eval = evalContent;
     }
 
-    then(name: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree {
+    then(name: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree<T> {
         this.parents.push(this.current);
         const nextCurrent = {
             name: name,
@@ -266,7 +273,7 @@ export abstract class CommandTree extends Command {
         return this;
     }
 
-    or(name?: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree {
+    or(name?: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree<T> {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
         if (name) this.then(name, allowDM, match, evalContent);

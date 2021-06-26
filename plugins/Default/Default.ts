@@ -2,9 +2,9 @@ import { GuildMember, User, TextChannel, DMChannel, NewsChannel, Message, Guild 
 import { Command, CommandTree, Handler, Plugin, RichEmbed } from "../../Handler";
 import { AbstractPluginData } from "../../Structures";
 
-interface HelpData extends AbstractPluginData {}
+interface DefaultData extends AbstractPluginData {}
 
-class Help extends Command {
+class Help extends Command<DefaultData> {
 
     constructor() {
         super("help", [], "help `command`", "helps with the usage of commands. \n`command` is optional and must be the actual command name not an alias.", true, true);
@@ -41,7 +41,7 @@ class Help extends Command {
 
 }
 
-class Permissions extends CommandTree {
+class Permissions extends CommandTree<DefaultData> {
 
     constructor() {
         super("permissions", ["perms"], "permissions **list**\npermissions **add** `command` `<@role|roleid>`\npermissions **del** `command` `<@role|roleid>`\npermissions **reset** `command`", "change what roles are allowed to use commands.\n`command` is required and must be the command name, not an alias.");
@@ -76,7 +76,7 @@ class Permissions extends CommandTree {
         })
         .or("add")
             .then("command", false, /\w+/)
-                .then("role", false, /[^\d]*?(\d+)|@everyone/, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("role", false, /[^\d]*?(\d+)[^\s]*|@everyone/, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
                     const reply = new RichEmbed()
                         .setTitle("Permissions: add");
@@ -111,7 +111,7 @@ class Permissions extends CommandTree {
             .or()
         .or("del")
             .then("command", false, /\w+/)
-                .then("role", false, /[^\d]*?(\d+)|@everyone/, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("role", false, /[^\d]*?(\d+)[^\s]*|@everyone/, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const {enabled} = await handler.database.getGuild(<string>guild?.id, handler.defaultPrefix);
                     const reply = new RichEmbed()
                         .setTitle("Permissions: del");
@@ -175,7 +175,7 @@ class Permissions extends CommandTree {
 
 }
 
-class Aliases extends CommandTree {
+class Aliases extends CommandTree<DefaultData> {
 
     constructor() {
         super("aliases", [], "aliases **list**\naliases **add** **command** **alias**\naliases **del** **command** **alias**\naliases reset **alias**", "change what aliases are assigned to use what commands\n **alias** is required and must not contain a space.\n**command** is required and must be the command name, not an alias.");
@@ -292,7 +292,7 @@ class Aliases extends CommandTree {
     
 }
 
-class SetPrefix extends Command {
+class SetPrefix extends Command<DefaultData> {
 
     constructor() {
         super("setprefix", [], "setprefix **prefix**", "sets prefix for the server.\n**prefix** must not contain a space.");
@@ -313,7 +313,7 @@ class SetPrefix extends Command {
 
 }
 
-class Plugins extends CommandTree {
+class Plugins extends CommandTree<DefaultData> {
     constructor() {
         super("plugins", [], "plugins list\nplugins info **plugin**\nplugins enable **plugin**\nplugins disable **plugin**", "enables/disables plugin components.\n**plugin** is required and must be the name of the plugin.")
     }
@@ -375,12 +375,12 @@ class Plugins extends CommandTree {
         })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
-        })
+        });
     }
     
 }
 
-export const plugin = new Plugin<HelpData>("Default", "Default enabled stuff, don't disable", {});
+export const plugin = new Plugin<DefaultData>("Default", "Default enabled stuff, don't disable", {});
 plugin.addCommand(new Help());
 plugin.addCommand(new Permissions());
 plugin.addCommand(new Aliases());

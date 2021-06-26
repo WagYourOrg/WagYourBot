@@ -102,15 +102,15 @@ export class SQLDatabase implements Database {
             const res = (<{Aliases: T | null, Perms: U | null}[]>await conn.query(`SELECT Aliases, Perms FROM Plugin${plugin} WHERE GuildID=?`, [guildID])).map(e => {return {aliases: e.Aliases, perms: e.Perms}});
             if (!res.length) {
                 conn.query(`INSERT INTO Plugin${plugin} VALUES (?, ?, ?, ?)`, [guildID, defaultPluginAliases, defaultPluginPerms, null]);
-                return {aliases: defaultPluginAliases, perms: defaultPluginPerms};
+                return {aliases: JSON.parse(JSON.stringify(defaultPluginAliases)), perms: JSON.parse(JSON.stringify(defaultPluginPerms))};
             }
             if (res[0].perms == null) {
                 conn.query(`UPDATE Plugin${plugin} SET Perms=? WHERE GuildID=?`, [defaultPluginPerms, guildID]);
-                res[0].perms = defaultPluginPerms;
+                res[0].perms = JSON.parse(JSON.stringify(defaultPluginPerms));
             }
             if (res[0].aliases == null) {
                 conn.query(`UPDATE Plugin${plugin} SET Aliases=? WHERE GuildID=?`, [defaultPluginAliases, guildID]);
-                res[0].aliases = defaultPluginAliases;
+                res[0].aliases = JSON.parse(JSON.stringify(defaultPluginAliases));
             }
             return <{aliases: T, perms: U}>res[0];
         } finally {
@@ -124,11 +124,11 @@ export class SQLDatabase implements Database {
             const res = (<{Data: T | null}[]>await conn.query(`SELECT Data FROM Plugin${plugin} WHERE GuildID=?`, [guildID])).map(e => e.Data);
             if (!res.length) {
                 conn.query(`INSERT INTO Plugin${plugin} VALUES (?, ?, ?, ?)`, [guildID, null, null, defaultData]);
-                return defaultData;
+                return JSON.parse(JSON.stringify(defaultData));
             }
             if (res[0] == null) {
                 conn.query(`UPDATE Plugin${plugin} SET Data=? WHERE GuildID=?`, [defaultData, guildID]);
-                return defaultData;
+                return JSON.parse(JSON.stringify(defaultData));
             }
             return res[0];
         } finally {

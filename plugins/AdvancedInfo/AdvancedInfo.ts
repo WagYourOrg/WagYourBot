@@ -4,7 +4,7 @@ import { AbstractPluginData } from "../../Structures";
 
 interface AIData extends AbstractPluginData {}
 
-class AIListRoles extends Command {
+class AIListRoles extends Command<AIData> {
     constructor() {
         super("listroles", ["ailistroles"], "listroles", "list all server roles by id");
     }
