@@ -241,19 +241,20 @@ interface UsagePart {
     readonly next: (string|null)[];
 }
 
-export type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
-export type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
-export type ArgFilter = (arg: (string | undefined)[], message: Message) => string | undefined;
+type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+type ArgFilter = (arg: (string | undefined)[], message: Message) => string | undefined;
 
 
 export enum TreeTypes {
     SUB_COMMAND, STRING, INTEGER, BOOLEAN, USER, CHANNEL, ROLE, OTHER
 }
 
+
 export type TreeOptions<T> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter, eval?: T} | 
     {allowDM?: boolean, type: RegExp, argFilter: ArgFilter, eval?: T};
 
-export type NextTree<T, W extends CommandTree<X, any, Y> | null, X extends AbstractPluginData, Y> = CommandTree<X, W, Y & T, Y>
+type NextTree<T, W extends CommandTree<X, any, Y> | null, X extends AbstractPluginData, Y> = CommandTree<X, W, {[key in keyof T]: string} & Y, Y>
 
 export abstract class CommandTree<T extends AbstractPluginData, W extends CommandTree<T, any, Z> | null = null, V = {}, Z = {}> extends Command<T> {
     readonly head: CommandPart;
@@ -333,10 +334,10 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         }
     }
 
-    then<U, A extends boolean>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<V & U>>): NextTree<U, CommandTree<T, W, V>, T, V>;
-    then<U, A extends boolean>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<V & U>>): NextTree<U, CommandTree<T, W, V>, T, V>;
+    then<U, A extends boolean>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<{[key in keyof U]: string} & V>>): NextTree<U, CommandTree<T, W, V>, T, V>;
+    then<U, A extends boolean>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<{[key in keyof U]: string} & V>>): NextTree<U, CommandTree<T, W, V>, T, V>;
 
-    then<U>(name: string & keyof U, options: TreeOptions<CommandEval<V & U>> = {}): NextTree<U, CommandTree<T, W, V>, T, V> {
+    then<U>(name: string & keyof U, options: TreeOptions<CommandEval<{[key in keyof U]: string} & V>> = {}): NextTree<U, CommandTree<T, W, V>, T, V> {
         this.parents.push(this.current);
         if (typeof options.type === undefined) {
             options.type = TreeTypes.SUB_COMMAND;
@@ -392,12 +393,12 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         return <any>this;
     }
 
-    or<U, A extends boolean>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<V & U>>): NextTree<U, W, T, Z>;
-    or<U, A extends boolean>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<V & U>>): NextTree<U, W, T, Z>;
+    or<U, A extends boolean>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<{[key in keyof U]: string} & V>>): NextTree<U, W, T, Z>;
+    or<U, A extends boolean>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<{[key in keyof U]: string} & V>>): NextTree<U, W, T, Z>;
     or(): W;
     or(): W;
 
-    or<U>(name?: string & keyof U, options: TreeOptions<CommandEval<V & U>> = {}): NextTree<U, W, T, Z> | W {
+    or<U>(name?: string & keyof U, options: TreeOptions<CommandEval<{[key in keyof U]: string} & V>> = {}): NextTree<U, W, T, Z> | W {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
         if (name) this.then(<string>name, <any>options);
