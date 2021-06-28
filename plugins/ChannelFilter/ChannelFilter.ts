@@ -1,5 +1,5 @@
 import { Message, PartialMessage } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed } from "../../Handler";
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
 import { AbstractPluginData } from "../../Structures";
 
 interface ChannelFilterData extends AbstractPluginData {
@@ -17,7 +17,7 @@ interface ChannelFilterData extends AbstractPluginData {
 
 class ChannelFilter extends CommandTree<ChannelFilterData> {
     constructor() {
-        super("channelfilter", ["filter"], "channelfilter list `<@channel|channelid>|global`\nchannelfilter add `<@channel|channelid>|global` `</regex/|attachments>`\nchannelfilter edit `<@channel|channelid>|global` <position> `</regex/>`\nchannelfilter del `<@channel|channelid>|global` <position>", "filter chat by [regex](https://regexr.com/).\nuse position in list command for edit/delete. `/regex/` must be enclosed with the / or \\` symbol.")
+        super("channelfilter", ["filter"], "filter chat by [regex](https://regexr.com/).\nuse position in list command for edit/delete. `regex` must be enclosed with the / or \\` symbol.")
     }
 
     //TODO: threadsafe?
@@ -26,139 +26,139 @@ class ChannelFilter extends CommandTree<ChannelFilterData> {
     }
 
     buildCommandTree(): void {
-        this.then("list")    
-            .then("global", false, undefined, async (args, remainingContent, member, guild, channel, message, handler) => {
-                const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
+        this.then("list")
+            .then("global", {eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
                 const filterLines = pluginData.global.filters.map((e, i) => `**${i+1}.** \`/${e}/gi\``);
                 Command.paginateData(channel, handler, new RichEmbed().setTitle("ChannelFilter: list").addField("Attachments", pluginData.global.attachments ? "Blocked" : "Allowed"), filterLines);
-            }).or("channel", false,  /[^\d]*?(\d+)[^\s]*/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                if (!guild?.channels.cache.has(<string>args.channel[1])) {
-                    channel.send(new RichEmbed().setTitle("ChannelFilter: list").setDescription(`Failed to find channel <#${args.channel[1]}> / ${args.channel[1]}`));
+            }}).or("channel", {type: TreeTypes.CHANNEL, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                if (!guild.channels.cache.has(<string>args.channel)) {
+                    channel.send(new RichEmbed().setTitle("ChannelFilter: list").setDescription(`Failed to find channel <#${args.channel}> / ${args.channel}`));
                     return;
                 }
-                const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                const filterLines = pluginData.channels[<string>args.channel[1]]?.filters.map((e, i) => `**${i+1}.** /${e}/gi`) ?? [];
-                Command.paginateData(channel, handler, new RichEmbed().setTitle("ChannelFilter: list").addField("Attachments", pluginData.channels[<string>args.channel[1]]?.attachments ? "Blocked" : "Allowed"), filterLines);
-            }).or()
+                const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                const filterLines = pluginData.channels[<string>args.channel]?.filters.map((e, i) => `**${i+1}.** /${e}/gi`) ?? [];
+                Command.paginateData(channel, handler, new RichEmbed().setTitle("ChannelFilter: list").addField("Attachments", pluginData.channels[<string>args.channel]?.attachments ? "Blocked" : "Allowed"), filterLines);
+            }}).or()
         .or("add")
             .then("global")
-                .then("attachments", false, undefined, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
+                .then("attachments", {eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
                     pluginData.global.attachments = true;
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
                     channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added attachments to the Global filter list`));
-                    this.invalidateGuildCache(<string>guild?.id);
-                }).or("regex", false, /(\/|`)(.*)\1/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                    pluginData.global.filters.push(<string>args.regex[2]);
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
-                    channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added \`/${<string>args.regex[2]}/gi\` to the Global filter list`));
-                    this.invalidateGuildCache(<string>guild?.id);
-                }).or()
-            .or("channel", false,  /[^\d]*?(\d+)[^\s]*/)
-                .then("attachments", false, undefined, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    if (!guild?.channels.cache.has(<string>args.channel[1])) {
-                        channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Failed to find channel <#${args.channel[1]}> / ${args.channel[1]}`));
+                    this.invalidateGuildCache(<string>guild.id);
+                }}).or("regex", {type: /(\/|`)(.*)\1/, argFilter: (arg) => arg[2], eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                    pluginData.global.filters.push(<string>args.regex);
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
+                    channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added \`/${<string>args.regex}/gi\` to the Global filter list`));
+                    this.invalidateGuildCache(<string>guild.id);
+                }}).or()
+            .or("channel", {type: TreeTypes.CHANNEL})
+                .then("attachments", {eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    if (!guild.channels.cache.has(<string>args.channel)) {
+                        channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Failed to find channel <#${args.channel}> / ${args.channel}`));
                         return;
                     }
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                    if (pluginData.channels[<string>args.channel[1]]) {
-                        (<{attachments: boolean}>pluginData.channels[<string>args.channel[1]]).attachments = true;
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                    if (pluginData.channels[<string>args.channel]) {
+                        (<{attachments: boolean}>pluginData.channels[<string>args.channel]).attachments = true;
                     } else {
-                        pluginData.channels[<string>args.channel[1]] = {filters: [], attachments: true};
+                        pluginData.channels[<string>args.channel] = {filters: [], attachments: true};
                     }
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
-                    channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added attachments to the <#${args.channel[1]}> filter list`));
-                    this.invalidateGuildCache(<string>guild?.id);
-                }).or("regex", false, /(\/|`)(.*)\1/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    if (!guild?.channels.cache.has(<string>args.channel[1])) {
-                        channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Failed to find channel <#${args.channel[1]}> / ${args.channel[1]}`));
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
+                    channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added attachments to the <#${args.channel}> filter list`));
+                    this.invalidateGuildCache(<string>guild.id);
+                }}).or("regex", {type: /(\/|`)(.*)\1/, argFilter: (arg) => arg[2], eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    if (!guild.channels.cache.has(<string>args.channel)) {
+                        channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Failed to find channel <#${args.channel}> / ${args.channel}`));
                         return;
                     }
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                    if (pluginData.channels[<string>args.channel[1]]) {
-                        (<{filters: string[]}>pluginData.channels[<string>args.channel[1]]).filters.push(<string>args.regex[2]);
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                    if (pluginData.channels[<string>args.channel]) {
+                        (<{filters: string[]}>pluginData.channels[<string>args.channel]).filters.push(<string>args.regex);
                     } else {
-                        pluginData.channels[<string>args.channel[1]] = {filters: [<string>args.regex[2]], attachments: false};
+                        pluginData.channels[<string>args.channel] = {filters: [<string>args.regex], attachments: false};
                     }
-                    channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added \`/${args.regex[2]}/gi\` to the <#${args.channel[1]}> filter list`));
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
-                    this.invalidateGuildCache(<string>guild?.id);
-                }).or()
+                    channel.send(new RichEmbed().setTitle("ChannelFilter: add").setDescription(`Successfully added \`/${args.regex}/gi\` to the <#${args.channel}> filter list`));
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
+                    this.invalidateGuildCache(<string>guild.id);
+                }}).or()
             .or()
         .or("edit")
             .then("global")
-                .then("position", false, /\d+/)
-                    .then("regex", false, /(\/|`)(.*)\1/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                    const position = parseInt(<string>args.position[0]);
+                .then("position", {type: TreeTypes.INTEGER})
+                    .then("regex", {type: /(\/|`)(.*)\1/, argFilter: (arg) => arg[2], eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                    const position = parseInt(<string>args.position);
                     if (position < 1 || (position > pluginData.global.filters.length)) {
                         channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Failed to find regex in position ${position}. too big?`))
                         return;
                     }
                     const oldValue = pluginData.global.filters[position - 1];
-                    pluginData.global.filters[position - 1] = <string>args.regex[2];
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
-                    channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully edited \`/${oldValue}/gi\` -> \`/${args.regex[2]}/gi\` in the Global filter list`));
-                    this.invalidateGuildCache(<string>guild?.id);
-                    }).or()
+                    pluginData.global.filters[position - 1] = <string>args.regex;
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
+                    channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully edited \`/${oldValue}/gi\` -> \`/${args.regex}/gi\` in the Global filter list`));
+                    this.invalidateGuildCache(<string>guild.id);
+                    }}).or()
                 .or()
-            .or("channel", false, /[^\d]*?(\d+)[^\s]*/)
-                .then("position", false, /\d+/)
-                    .then("regex", false, /(\/|`)(.*)\1/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                        if (!guild?.channels.cache.has(<string>args.channel[1])) {
-                            channel.send(new RichEmbed().setTitle("ChannelFilter: list").setDescription(`Failed to find channel <#${args.channel[1]}> / ${args.channel[1]}`));
+            .or("channel", {type: TreeTypes.CHANNEL})
+                .then("position", {type: TreeTypes.INTEGER})
+                    .then("regex",{type: /(\/|`)(.*)\1/, argFilter: (arg) => arg[2], eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                        if (!guild.channels.cache.has(<string>args.channel)) {
+                            channel.send(new RichEmbed().setTitle("ChannelFilter: list").setDescription(`Failed to find channel <#${args.channel}> / ${args.channel}`));
                             return;
                         }
                         
-                        const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                        const position = parseInt(<string>args.position[0]);
-                        if (position < 1 || (position > <number>pluginData.channels[<string>args.channel[1]]?.filters.length ?? 0)) {
+                        const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                        const position = parseInt(<string>args.position);
+                        if (position < 1 || (position > <number>pluginData.channels[<string>args.channel]?.filters.length ?? 0)) {
                             channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Failed to find regex in position ${position}. too big?`))
                             return;
                         }
-                        const oldValue = pluginData.channels[<string>args.channel[1]]?.filters[position - 1];
-                        (<{filters: string[]}>pluginData.channels[<string>args.channel[1]]).filters[position - 1] = <string>args.regex[2];
-                        await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
-                        channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully edited \`/${oldValue}/gi\` -> \`/${args.regex[2]}/gi\` in the <#${args.channel[1]}> filter list`));
-                        this.invalidateGuildCache(<string>guild?.id);
-                    }).or()
+                        const oldValue = pluginData.channels[<string>args.channel]?.filters[position - 1];
+                        (<{filters: string[]}>pluginData.channels[<string>args.channel]).filters[position - 1] = <string>args.regex;
+                        await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
+                        channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully edited \`/${oldValue}/gi\` -> \`/${args.regex}/gi\` in the <#${args.channel}> filter list`));
+                        this.invalidateGuildCache(<string>guild.id);
+                    }}).or()
                 .or()
             .or()
         .or("del")
             .then("global")
-                .then("position", false, /\d+/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                    const position = parseInt(<string>args.position[0]);
+                .then("position", {type: TreeTypes.INTEGER, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                    const position = parseInt(<string>args.position);
                     if (position < 1 || (position > pluginData.global.filters.length)) {
                         channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Failed to find regex in position ${position}. too big?`))
                         return;
                     }
                     const oldValue = pluginData.global.filters.splice(position - 1, 1);
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
                     channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully deleted \`/${oldValue}/gi\` in the Global filter list`));
-                    this.invalidateGuildCache(<string>guild?.id);
+                    this.invalidateGuildCache(<string>guild.id);
                     
-                }).or()
-            .or("channel", false, /[^\d]*?(\d+)[^\s]*/)
-                .then("position", false, /\d+/, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    if (!guild?.channels.cache.has(<string>args.channel[1])) {
-                        channel.send(new RichEmbed().setTitle("ChannelFilter: list").setDescription(`Failed to find channel <#${args.channel[1]}> / ${args.channel[1]}`));
+                }}).or()
+            .or("channel", {type: TreeTypes.CHANNEL})
+                .then("position", {type: TreeTypes.INTEGER, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                    if (!guild.channels.cache.has(<string>args.channel)) {
+                        channel.send(new RichEmbed().setTitle("ChannelFilter: list").setDescription(`Failed to find channel <#${args.channel}> / ${args.channel}`));
                         return;
                     }
                         
-                    const pluginData = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
-                    const position = parseInt(<string>args.position[0]);
-                    if (position < 1 || (position > <number>pluginData.channels[<string>args.channel[1]]?.filters.length ?? 0)) {
+                    const pluginData = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                    const position = parseInt(<string>args.position);
+                    if (position < 1 || (position > <number>pluginData.channels[<string>args.channel]?.filters.length ?? 0)) {
                         channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Failed to find regex in position ${position}. too big?`))
                         return;
                     }
-                    const oldValue = pluginData.channels[<string>args.channel[1]]?.filters.splice(position - 1, 1);
-                    await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, pluginData);
-                    channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully deleted \`/${oldValue}/gi\` in the <#${args.channel[1]}> filter list`));
-                    this.invalidateGuildCache(<string>guild?.id);
+                    const oldValue = pluginData.channels[<string>args.channel]?.filters.splice(position - 1, 1);
+                    await handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, pluginData);
+                    channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully deleted \`/${oldValue}/gi\` in the <#${args.channel}> filter list`));
+                    this.invalidateGuildCache(<string>guild.id);
                             
-                }).or()
+                }}).or()
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
         });

@@ -189,7 +189,7 @@ export abstract class Command<T extends AbstractPluginData> {
     /**
      * do **not** await this... 
      */
-    static async paginateData(channel: TextChannel | DMChannel | NewsChannel, handler: Handler, baseEmbed: RichEmbed, lines: string[], maxLines = 2000) {
+    static async paginateData(channel: TextChannel | DMChannel | NewsChannel, handler: Handler, baseEmbed: RichEmbed, lines: string[], maxLines = 20) {
         let i = 0;
         let j = 0;
         const pages: string[][] = [[]];
@@ -226,43 +226,162 @@ export abstract class Command<T extends AbstractPluginData> {
     }
 }
 
-export interface CommandPart {
+interface CommandPart {
     readonly name: string;
-    readonly match: RegExp | undefined;
-    eval: CommandEval | undefined;
-    next: CommandPart[] | undefined;
+    type: TreeTypes,
+    readonly match?: RegExp;
+    eval?: CommandEval<any>;
+    filter?: ArgFilter,
+    next?: CommandPart[];
     readonly allowDM: boolean;
 }
 
-export type CommandEval = (args: {[name: string]: (string | undefined)[] | string}, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+interface UsagePart {
+    readonly current: {name: string, isMatch: boolean}[];
+    readonly next: (string|null)[];
+}
 
-export abstract class CommandTree<T extends AbstractPluginData> extends Command<T> {
+export type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+export type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+export type ArgFilter = (arg: (string | undefined)[], message: Message) => string | undefined;
+
+
+export enum TreeTypes {
+    SUB_COMMAND, STRING, INTEGER, BOOLEAN, USER, CHANNEL, ROLE, OTHER
+}
+
+export type TreeOptions<T> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter, eval?: T} | 
+    {allowDM?: boolean, type: RegExp, argFilter: ArgFilter, eval?: T};
+
+export type NextTree<T, W extends CommandTree<X, any, Y> | null, X extends AbstractPluginData, Y> = CommandTree<X, W, Y & T, Y>
+
+export abstract class CommandTree<T extends AbstractPluginData, W extends CommandTree<T, any, Z> | null = null, V = {}, Z = {}> extends Command<T> {
     readonly head: CommandPart;
     readonly parents: CommandPart[] = [];
     current: CommandPart;
 
-    constructor(name="", aliases: string[]=[], usage="", description="", everyoneDefault=false, allowDM=false) {
-        super(name, aliases, usage, description, everyoneDefault, allowDM);
-        this.head = {name: "head", match: undefined, eval: undefined, next: undefined, allowDM: allowDM};
+    constructor(name="", aliases: string[]=[], description="", everyoneDefault=false, allowDM=false) {
+        super(name, aliases, "", description, everyoneDefault, allowDM);
+        
+        this.head = {name: name, match: undefined, type: TreeTypes.OTHER, eval: undefined, next: undefined, allowDM: this.allowDM};
         this.current = this.head;
         this.buildCommandTree();
-        if (this.head.next === undefined) throw new Error(`no branches on "head" for command "${name}"`);
+        this.head.next?.push({name: "help", type: TreeTypes.SUB_COMMAND, eval: async (args, remainingContent, member, guild, channel, message, handler) => this.selfHelp(channel, guild, handler), allowDM: true});
+
+        if (this.head.next === undefined && this.head.eval === undefined) throw new Error(`no branches on "head" for command "${name}"`);
+        //cast to remove readonly
+        (<{usage: string}>this).usage = this.compileUsage(this.genUsage(this.head));
     }
 
     abstract buildCommandTree(): void;
 
-    defaultEval(evalContent: CommandEval) {
+    defaultEval(evalContent: DMCommandEval<V>) {
         this.head.eval = evalContent;
     }
 
-    then(name: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree<T> {
+    private compileUsage(part: UsagePart): string {
+        const matches = [];
+        const notMatches = [];
+        for (const arg of part.current) {
+            if (arg.isMatch)
+                matches.push(arg.name);
+            else
+                notMatches.push(arg.name);
+        }
+        const enclose = matches.length || (notMatches.length > 1);
+        let current = enclose ? "`" : "";
+        if (matches.length) current += `<${matches.join("|")}>`;
+        if (matches.length && notMatches.length) {
+            current += "|";
+        }
+        if (notMatches.length) current += notMatches.join("|");
+        current += enclose ? "`" : "";
+        part.next.sort();
+        const nexts: string[] = [];
+        for (const next of part.next) {
+            if (next === null) {
+                nexts.push("");
+            } else {
+                nexts.push(" " + next);
+            }
+        }
+        return current + nexts.join("\n" + current);
+    }
+
+    private genUsage(current: CommandPart): UsagePart {
+        if (current.next) {
+            const parts: UsagePart[] = [];
+            for (const part of current.next) {
+                parts.push(this.genUsage(part));
+            }
+            for (let i = 0; i < parts.length; ++i) {
+                for (let j = 0; j < i; ++j) {
+                    if (JSON.stringify(parts[i].next) === JSON.stringify(parts[j].next)) {
+                        parts[j].current.push(...parts[i].current);
+                        parts.splice(i, 1);
+                        --i;
+                        break;
+                    }
+                }
+            }
+            const next: (string|null)[] = parts.map(this.compileUsage);
+            if (current.eval !== undefined) next.push(null);
+            return {current: [{name: current.name, isMatch: !!current.match}], next: next}
+        } else {
+            if (current.eval === undefined) throw new Error("Cannot have endpoint of command with undefined eval.");
+            return {current: [{name: current.name, isMatch: !!current.match}], next: [null]};
+        }
+    }
+
+    then<U, A extends boolean>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<V & U>>): NextTree<U, CommandTree<T, W, V>, T, V>;
+    then<U, A extends boolean>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<V & U>>): NextTree<U, CommandTree<T, W, V>, T, V>;
+
+    then<U>(name: string & keyof U, options: TreeOptions<CommandEval<V & U>> = {}): NextTree<U, CommandTree<T, W, V>, T, V> {
         this.parents.push(this.current);
+        if (typeof options.type === undefined) {
+            options.type = TreeTypes.SUB_COMMAND;
+        }
+        let type: TreeTypes;
+        let compiledType: RegExp | undefined;
+        if (options.type instanceof RegExp) {
+            compiledType = options.type;
+            type = TreeTypes.OTHER;
+        } else {
+            switch(<TreeTypes>options.type) {
+                case TreeTypes.STRING:
+                    compiledType = /\w+\b/;
+                    break;
+                case TreeTypes.INTEGER:
+                    compiledType = /\d+\b/;
+                    break;
+                case TreeTypes.BOOLEAN:
+                    compiledType = /true\b|false\b/i;
+                    break;
+                case TreeTypes.USER:
+                    compiledType = /[^\d]*?(\d+)[^\s]*/;
+                    options.argFilter = (arg) => arg[1];
+                    break;
+                case TreeTypes.CHANNEL:
+                    compiledType = /[^\d]*?(\d+)[^\s]*/;
+                    options.argFilter = (arg) => arg[1];
+                    break;
+                case TreeTypes.ROLE:
+                    compiledType = /[^\d]*?(\d+)[^\s]*|(@everyone)\b/;
+                    options.argFilter = (arg) => arg[1] ? arg[1] : arg[2];
+                    break;
+                case TreeTypes.SUB_COMMAND:
+            }
+            type = <TreeTypes>options.type;
+        }
+        
         const nextCurrent = {
             name: name,
-            match: match,
-            eval: evalContent,
+            match: compiledType,
+            type: type,
+            argFilter: options.argFilter,
+            eval: options.eval,
             next: undefined,
-            allowDM: allowDM
+            allowDM: !!(<{allowDM: boolean | undefined}>options).allowDM
         }
         if (this.current.next === undefined) {
             this.current.next = [nextCurrent];
@@ -270,17 +389,22 @@ export abstract class CommandTree<T extends AbstractPluginData> extends Command<
             this.current.next.push(nextCurrent);
         }
         this.current = nextCurrent;
-        return this;
+        return <any>this;
     }
 
-    or(name?: string, allowDM = false, match?: RegExp, evalContent?: CommandEval): CommandTree<T> {
+    or<U, A extends boolean>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<V & U>>): NextTree<U, W, T, Z>;
+    or<U, A extends boolean>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<V & U>>): NextTree<U, W, T, Z>;
+    or(): W;
+    or(): W;
+
+    or<U>(name?: string & keyof U, options: TreeOptions<CommandEval<V & U>> = {}): NextTree<U, W, T, Z> | W {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
-        if (name) this.then(name, allowDM, match, evalContent);
-        return this;
+        if (name) this.then(<string>name, <any>options);
+        return <any>this;
     }
 
-    private evalTree(current: CommandPart, prevArgs: ([CommandPart, string[] | string])[], remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): void {
+    private evalTree(current: CommandPart, prevArgs: ([CommandPart, string | undefined])[], remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): void {
         if (current.next !== undefined) {
             for (const nextPart of current.next) {
                 if (nextPart.match === undefined) {
@@ -289,7 +413,11 @@ export abstract class CommandTree<T extends AbstractPluginData> extends Command<
                             this.noDM(channel);
                             return;
                         }
-                        prevArgs.push([nextPart, nextPart.name]);
+                        if (nextPart.filter) {
+                            prevArgs.push([nextPart,  nextPart.filter([nextPart.name], message)]);
+                        } else {
+                            prevArgs.push([nextPart,  nextPart.name]);
+                        }
                         this.evalTree(nextPart, prevArgs, remainingContent.substring(nextPart.name.length).trim(), member, guild, channel, message, handler);
                         return;
                     }
@@ -300,7 +428,8 @@ export abstract class CommandTree<T extends AbstractPluginData> extends Command<
                             this.noDM(channel);
                             return;
                         }
-                        prevArgs.push([nextPart, <string[]>match])
+                        const argFilter: ArgFilter = nextPart.filter ?? (arg => arg[0]);
+                        prevArgs.push([nextPart, argFilter(<string[]>match, message)])
                         this.evalTree(nextPart, prevArgs, remainingContent.substring(match[0].length).trim(), member, guild, channel, message, handler);
                         return;
                     }
@@ -311,11 +440,11 @@ export abstract class CommandTree<T extends AbstractPluginData> extends Command<
             this.sendError(`Incomplete command \`${this.name} ${prevArgs.map(e => e[0].name).join(" ")}\`, expected next part \`${current.next?.map(e => e.name).join("|")}\``, channel);
             return;
         }
-        const args: {[name: string]: string[] | string} = {};
+        const args: {[name: string]: string | undefined} = {};
         for (const [cmdPart, partArgs] of prevArgs) {
             args[cmdPart.name] = partArgs;
         }
-        current.eval(args, remainingContent, member, guild, channel, message, handler);
+        current.eval(args, remainingContent, member, <Guild>guild, channel, message, handler);
         return;
     }
 

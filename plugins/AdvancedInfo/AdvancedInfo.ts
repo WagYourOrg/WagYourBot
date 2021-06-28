@@ -15,7 +15,7 @@ class AIListRoles extends Command<AIData> {
         for (const [key, role] of roles.cache.sort((a,b) => b.position - a.position)) {
             formattedRoles.push(`**${++i}.** ${role}: ${role.id}`);
         }
-        Command.paginateData(channel, handler, new RichEmbed().setTitle("Roles"), formattedRoles, 20);
+        Command.paginateData(channel, handler, new RichEmbed().setTitle("Roles"), formattedRoles);
     }
 }
 
