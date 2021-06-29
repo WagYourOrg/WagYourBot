@@ -242,7 +242,7 @@ class ReactRolePlugin extends Plugin<ReactRoleData> {
                     }
                 }   
             } catch (e) {
-                console.log(e);
+                console.error(e);
             }
         });
         handler.on("messageReactionRemove", async (reaction, user) => {
@@ -261,7 +261,7 @@ class ReactRolePlugin extends Plugin<ReactRoleData> {
                     }
                 }
             } catch (e) {
-                console.log(e);
+                console.error(e);
             }
         });
     }

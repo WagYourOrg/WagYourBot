@@ -243,7 +243,7 @@ interface UsagePart {
 }
 
 //jank generic magic types
-type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild, channel: TextChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
+type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember, guild: Guild, channel: TextChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 type ArgFilter<T> = (arg: (string | undefined)[], message: Message) => T;
 type TreeOptions<U> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter<U>} | 
@@ -269,7 +269,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         this.head = {name: name, match: undefined, type: TreeTypes.OTHER, eval: undefined, next: undefined, allowDM: this.allowDM};
         this.current = this.head;
         this.buildCommandTree();
-        this.head.next?.push({name: "help", type: TreeTypes.SUB_COMMAND, eval: async (args, remainingContent, member, guild, channel, message, handler) => this.selfHelp(channel, guild, handler), allowDM: true});
+        this.head.next?.unshift({name: "help", type: TreeTypes.SUB_COMMAND, eval: async (args, remainingContent, member, guild, channel, message, handler) => this.selfHelp(channel, guild, handler), allowDM: true});
 
         if (this.head.next === undefined && this.head.eval === undefined) throw new Error(`no branches on "head" for command "${name}"`);
         //cast to remove readonly
@@ -463,7 +463,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
             args[cmdPart.name] = partArgs;
         }
         //force cast here, it doesn't matter after the command tree is built because it's correct by now.
-        current.eval(args, remainingContent, member, <any>guild,<any>channel, message, handler);
+        current.eval(args, remainingContent, <any>member, <any>guild,<any>channel, message, handler);
         return;
     }
 
