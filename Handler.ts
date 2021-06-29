@@ -237,7 +237,6 @@ interface CommandPart {
     readonly allowDM: boolean;
 }
 
-//compiled command usage structure, instances of this is the result after completed buildCommandTree in CommandTree
 interface UsagePart {
     readonly current: {name: string, isMatch: boolean}[];
     readonly next: (string|null)[];
@@ -247,8 +246,8 @@ interface UsagePart {
 type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild, channel: TextChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 type ArgFilter<T> = (arg: (string | undefined)[], message: Message) => T;
-type TreeOptions<T, U> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter<U>, eval?: T} | 
-    {allowDM?: boolean, type: RegExp, argFilter: ArgFilter<U>, eval?: T};
+type TreeOptions<U> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter<U>} | 
+    {allowDM?: boolean, type: RegExp, argFilter: ArgFilter<U>};
 type NextTree<T, W extends CommandTree<X, any, Y> | null, X extends AbstractPluginData, Y, U> = CommandTree<X, W, {[key in keyof T]: U} & Y, Y>
 
 
@@ -336,14 +335,15 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
             return {current: [{name: current.name, isMatch: !!current.match}], next: [null]};
         }
     }
+    
+    then<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
+    then<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
 
-    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<{[key in keyof U]: string} & V>, string>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
-    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<{[key in keyof U]: string} & V>, string>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
-
-    then<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<DMCommandEval<{[key in keyof U]: string} & V>, A>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
-    then<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<CommandEval<{[key in keyof U]: string} & V>, A>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
-
-    then<U, A>(name: string & keyof U, options: TreeOptions<CommandEval<{[key in keyof U]: string} & V>, A> = {}): NextTree<U, CommandTree<T, W, V>, T, V, A> {
+    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
+    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
+    
+    
+    then<U, A>(name: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A> {
         this.parents.push(this.current);
         if (typeof options.type === undefined) {
             options.type = TreeTypes.SUB_COMMAND;
@@ -390,7 +390,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
             match: compiledType,
             type: type,
             argFilter: options.argFilter,
-            eval: options.eval,
+            eval: exec,
             next: undefined,
             allowDM: !!(<{allowDM: boolean | undefined}>options).allowDM
         }
@@ -404,16 +404,16 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         return <any>this;
     }
 
-    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<DMCommandEval<{[key in keyof U]: string} & V>, string>): NextTree<U, W, T, Z, string>;
-    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<CommandEval<{[key in keyof U]: string} & V>, string>): NextTree<U, W, T, Z, string>;
+    or<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
+    or<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
 
-    or<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<DMCommandEval<{[key in keyof U]: string} & V>, A>): NextTree<U, W, T, Z, A>;
-    or<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<CommandEval<{[key in keyof U]: string} & V>, A>): NextTree<U, W, T, Z, A>;
-    
+    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
+    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
+
     or(): W;
     or(): W;
 
-    or<U, A>(name?: string & keyof U, options: TreeOptions<CommandEval<{[key in keyof U]: string} & V>, A> = {}): NextTree<U, W, T, Z, A> | W {
+    or<U, A>(name?: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A> | W {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
         if (name) this.then(<string>name, <any>options);

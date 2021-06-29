@@ -10,7 +10,7 @@ class Help extends CommandTree<DefaultData> {
     }
  
     buildCommandTree(): void {
-        this.then("command", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+        this.then("command", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const {enabled} = guild ? await handler.database.getGuild(guild.id, handler.defaultPrefix) : {enabled: handler.plugins.map(e => e.name)};
             for (const plugin of handler.plugins) {
                 if (enabled.includes(plugin.name)) {
@@ -23,7 +23,7 @@ class Help extends CommandTree<DefaultData> {
                 }
             }
             channel.send(new RichEmbed().setTitle("Help: ERROR").setDescription(`Could not find command named \`${args.command?.toLowerCase()}\``).setColor(0xFF0000));
-        }})
+        })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {  
             const {enabled} = guild ? await handler.database.getGuild(guild.id, handler.defaultPrefix) : {enabled: handler.plugins.map(e => e.name)};
             const reply = new RichEmbed()
@@ -48,7 +48,7 @@ class Permissions extends CommandTree<DefaultData> {
     }
 
     buildCommandTree(): void {
-        this.then("list", {eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+        this.then("list", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
             const reply = new RichEmbed()
                 .setTitle("Permissions: list")
@@ -73,10 +73,10 @@ class Permissions extends CommandTree<DefaultData> {
                 }
             }
             channel.send(reply);
-        }})
+        })
         .or("add")
             .then("command", {type: TreeTypes.STRING})
-                .then("role", {type: TreeTypes.ROLE, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("role", {type: TreeTypes.ROLE}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                     const reply = new RichEmbed()
                         .setTitle("Permissions: add");
@@ -107,11 +107,11 @@ class Permissions extends CommandTree<DefaultData> {
                         reply.addField("Fail", "**command** did not parse.");
                     }
                     channel.send(reply);
-                }}).or()
+                }).or()
             .or()
         .or("del")
             .then("command", {type: TreeTypes.STRING})
-                .then("role", {type: TreeTypes.ROLE, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("role", {type: TreeTypes.ROLE}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                     const reply = new RichEmbed()
                         .setTitle("Permissions: del");
@@ -142,10 +142,10 @@ class Permissions extends CommandTree<DefaultData> {
                         reply.addField("Fail", "**command** did not parse.");
                     }
                     channel.send(reply);
-                }}).or()
+                }).or()
             .or()
         .or("reset")
-            .then("command", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("command", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                 const reply = new RichEmbed()
                     .setTitle("Permissions: reset");
@@ -167,7 +167,7 @@ class Permissions extends CommandTree<DefaultData> {
                     reply.addField("Fail", "**command** did not parse.");
                 }
                 channel.send(reply);
-            }})
+            })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
         });
@@ -182,7 +182,7 @@ class Aliases extends CommandTree<DefaultData> {
     }
 
     buildCommandTree(): void {
-        this.then("list", {eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+        this.then("list", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
             const reply = new RichEmbed()
                 .setTitle("Aliases: list")
@@ -198,10 +198,10 @@ class Aliases extends CommandTree<DefaultData> {
                 }
             }
             channel.send(reply);
-        }})
+        })
         .or("add")
             .then("command", {type: TreeTypes.STRING})
-                .then("alias", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("alias", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                     const reply = new RichEmbed()
                         .setTitle("Aliases: add");
@@ -228,11 +228,11 @@ class Aliases extends CommandTree<DefaultData> {
                         reply.addField("Fail", "**command** did not parse.");
                     }
                     channel.send(reply);
-                }}).or()
+                }).or()
             .or()
         .or("del")
             .then("command", {type: TreeTypes.STRING})
-                .then("alias", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("alias", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                     const reply = new RichEmbed()
                         .setTitle("Aliases: del");
@@ -259,10 +259,10 @@ class Aliases extends CommandTree<DefaultData> {
                         reply.addField("Fail", "**command** did not parse.");
                     }
                     channel.send(reply);
-                }}).or()
+                }).or()
             .or()
         .or("reset")
-            .then("command", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("command", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                 const reply = new RichEmbed()
                     .setTitle("Aliases: reset");
@@ -284,7 +284,7 @@ class Aliases extends CommandTree<DefaultData> {
                     reply.addField("Fail", "**command** did not parse.");
                 }
                 channel.send(reply);
-            }})
+            })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
         })
@@ -319,7 +319,7 @@ class Plugins extends CommandTree<DefaultData> {
     }
 
     buildCommandTree(): void {
-        this.then("list", {eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+        this.then("list", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
             const plugins = handler.plugins.map(e => e.name);
             const reply = new RichEmbed()
@@ -329,9 +329,9 @@ class Plugins extends CommandTree<DefaultData> {
             if (enable.length) reply.addField("Enabled", enable);
             if (disable.length) reply.addField("Disabled", disable);
             channel.send(reply);
-        }})
+        })
         .or("info")
-            .then("plugin", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("plugin", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                 const reply = new RichEmbed()
                     .setTitle("Plugins: info");
@@ -343,9 +343,9 @@ class Plugins extends CommandTree<DefaultData> {
                     reply.addField("Failed", "**Plugin** failed to parse.");
                 }
                 channel.send(reply);
-        }}).or()
+        }).or()
         .or("enable")
-            .then("plugin",{type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("plugin",{type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                 const reply = new RichEmbed()
                     .setTitle("Plugins: enable");
@@ -358,9 +358,9 @@ class Plugins extends CommandTree<DefaultData> {
                 }
                 channel.send(reply);
 
-            }}).or()
+            }).or()
         .or("disable")
-            .then("plugin", {type: TreeTypes.STRING, eval: async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("plugin", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const {enabled} = await handler.database.getGuild(<string>guild.id, handler.defaultPrefix);
                 const reply = new RichEmbed()
                     .setTitle("Plugins: disable");
@@ -372,7 +372,7 @@ class Plugins extends CommandTree<DefaultData> {
                     reply.addField("Failed", "**Plugin** failed to parse or is already disabled.");
                 }
                 channel.send(reply);
-            }})
+            })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
         });
