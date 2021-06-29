@@ -102,13 +102,13 @@ class ReactRoleMessage extends CommandTree<ReactRoleData> {
                 data.message.push((await (<TextChannel>chnl).send(new RichEmbed().setTitle("ReactRole").setDescription("React to recieve the corresponding role."))).id);
             } else {
                 if (data.message.length) {
-                    const chnl = await channel.messages.fetch(data.message[0]).catch(() => null) ?? channel;
-                    if (chnl === null) {
+                    const msg = (await channel.messages.fetch(data.message[0]).catch(() => null));
+                    if (!msg) {
                         channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription("ERROR: Database missing channel id, please send command in same channel as previous ReactRole messages or run `reactrolemessage clear`.").setColor(0xFF0000));
                         return;
                     }
-                    data.channel = chnl.id;
-                    data.message.push((await (<TextChannel>chnl).send(new RichEmbed().setTitle("ReactRole").setDescription("React to recieve the corresponding role."))).id);
+                    data.channel = channel.id;
+                    data.message.push((await channel.send(new RichEmbed().setTitle("ReactRole").setDescription("React to recieve the corresponding role."))).id);
                 } else {
                     data.channel = channel.id;
                     data.message.push((await channel.send(new RichEmbed().setTitle("ReactRole").setDescription("React to recieve the corresponding role."))).id);
@@ -117,16 +117,71 @@ class ReactRoleMessage extends CommandTree<ReactRoleData> {
             handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
         })
             .then("messageURL", {type: /https:\/\/.+\.discord\.com\/channels\/\d+\/(\d+)\/(\d+)/, argFilter: (arg) => {return {channel: <string>arg[1], message: <string>arg[2]}}}, async (args, remainingContent, member, guild, channel, message, handler) => {
-                args.messageURL
+                const chnl = guild.channels.resolve(args.messageURL.channel);
+                if (!chnl) {
+                    channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription(`Error: Channel ID (${args.messageURL.channel}) on URL did not parse... Malformed URL?`));
+                    return;
+                }
+                const msg = await (<TextChannel>chnl).messages.fetch(args.messageURL.message).catch(() => null);
+                if (!msg) {
+                    channel.send(new RichEmbed().setTitle("ReactionRoleMessage: Add").setDescription(`Error: Could not find message id ${args.messageURL.message}`));
+                    return;
+                }
+                const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
+                if (data.message.length) {
+                    if (!data.channel) {
+                        const msg2 = (await channel.messages.fetch(data.message[0]).catch(() => null));
+                        if (!msg2) {
+                            channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription("ERROR: Database missing channel id, please send command in same channel as previous ReactRole messages or run `reactrolemessage clear`.").setColor(0xFF0000));
+                            return;
+                        }
+                        data.channel = channel.id;
+                    }
+                } else {
+                    data.channel = chnl.id;
+                }
+                if (data.channel !== chnl.id) {
+                    channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription(`ERROR: All reaction messages must be in the same channel (<#${data.channel}>)`))
+                }
+                data.message.push(msg.id);
             }).or("channel", {type: TreeTypes.CHANNEL})
-                .then("message", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
-                    
+                .then("messageid", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const chnl = guild.channels.resolve(args.channel);
+                if (!chnl) {
+                    channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription(`Error: Channel ID (${args.channel}) on URL did not parse... Malformed URL?`));
+                    return;
+                }
+                const msg = await (<TextChannel>chnl).messages.fetch(args.messageid).catch(() => null);
+                if (!msg) {
+                    channel.send(new RichEmbed().setTitle("ReactionRoleMessage: Add").setDescription(`Error: Could not find message id ${args.messageid}`));
+                    return;
+                }
+                const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
+                if (data.message.length) {
+                    if (!data.channel) {
+                        const msg2 = (await channel.messages.fetch(data.message[0]).catch(() => null));
+                        if (!msg2) {
+                            channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription("ERROR: Database missing channel id, please send command in same channel as previous ReactRole messages or run `reactrolemessage clear`.").setColor(0xFF0000));
+                            return;
+                        }
+                        data.channel = channel.id;
+                    }
+                } else {
+                    data.channel = chnl.id;
+                }
+                if (data.channel !== chnl.id) {
+                    channel.send(new RichEmbed().setTitle("ReactRoleMessage: Add").setDescription(`ERROR: All reaction messages must be in the same channel (<#${data.channel}>)`))
+                }
+                data.message.push(msg.id);
                 }).or()
             .or()
         .or("delete")
             .then("position", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
-                
-            })
+
+            }).or()
+        .or("clear", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
+
+        })
     }
 
 }

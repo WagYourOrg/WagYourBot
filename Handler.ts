@@ -404,16 +404,16 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         return <any>this;
     }
 
-    or<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
-    or<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
+    or<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A>;
+    or<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A>;
 
-    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
-    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
+    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & V>): NextTree<U, W, T, Z, string>;
+    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & V>): NextTree<U, W, T, Z, string>;
 
     or(): W;
     or(): W;
 
-    or<U, A>(name?: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A> | W {
+    or<U, A>(name?: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A> | W {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
         if (name) this.then(<string>name, <any>options);
