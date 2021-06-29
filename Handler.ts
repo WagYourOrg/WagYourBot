@@ -331,7 +331,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
             if (current.eval !== undefined) next.push(null);
             return {current: [{name: current.name, isMatch: !!current.match}], next: next};
         } else {
-            if (current.eval === undefined) throw new Error("Cannot have endpoint of command with undefined eval.");
+            if (current.eval === undefined) throw new Error(`Cannot have endpoint (${current.name}) of command (${this.name}) with undefined eval.`);
             return {current: [{name: current.name, isMatch: !!current.match}], next: [null]};
         }
     }
@@ -385,11 +385,11 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         }
         
         //force cast here, it doesn't matter in the internals because it's correct by now.
-        const nextCurrent = {
+        const nextCurrent: CommandPart = {
             name: name,
             match: compiledType,
             type: type,
-            argFilter: options.argFilter,
+            filter: options.argFilter,
             eval: exec,
             next: undefined,
             allowDM: !!(<{allowDM: boolean | undefined}>options).allowDM
@@ -416,7 +416,8 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
     or<U, A>(name?: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A> | W {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
-        if (name) this.then(<string>name, <any>options);
+        // force cast here, at this point the contents of options have been verified by the "or" typescript definitions.
+        if (name) this.then<U, A>(name, <any>options, exec);
         //force cast here, jank generic magic goes brr.
         return <any>this;
     }

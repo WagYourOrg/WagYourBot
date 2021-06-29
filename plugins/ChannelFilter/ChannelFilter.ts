@@ -158,7 +158,7 @@ class ChannelFilter extends CommandTree<ChannelFilterData> {
                     channel.send(new RichEmbed().setTitle("ChannelFilter: edit").setDescription(`Successfully deleted \`/${oldValue}/gi\` in the <#${args.channel}> filter list`));
                     this.invalidateGuildCache(<string>guild.id);
                             
-                }).or()
+                })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
         });
