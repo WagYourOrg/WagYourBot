@@ -27,6 +27,9 @@ export abstract class Handler extends BaseClient {
         try {
             if (guildID) {
                 const {prefix, enabled} = await this.database.getGuild(guildID, this.defaultPrefix);
+                for (const plugin of this.plugins) {
+                    if (enabled.includes(plugin.name)) plugin.onMessage(message, this);
+                }
                 if (content.startsWith(prefix)) {
                     content = content.substring(prefix.length);
                     for (const plugin of this.plugins) {
@@ -37,6 +40,9 @@ export abstract class Handler extends BaseClient {
                 }
             } else {
                 if (content.startsWith(this.defaultPrefix)) {
+                    for (const plugin of this.plugins) {
+                        plugin.onMessage(message, this);
+                    }
                     for (const plugin of this.plugins) {
                         if (await plugin.tryHandleCommand(content, message, guildID, this)) return;
                     }
@@ -74,6 +80,12 @@ export class Plugin<T extends AbstractPluginData> {
     }
 
     registerExtraListeners(handler: Handler) {}
+
+    /**
+     * pre-checked event listener for plugin enabled, all the others can be registered with {@link Plugin#registerExtraListeners(Handler)}
+     * @param message 
+     */
+    async onMessage(message: Message, handler: Handler) {}
 
     private static checkRoles(member: GuildMember, commandPerms: string[]): boolean {
         if (commandPerms.includes("@everyone")) return true;
@@ -248,7 +260,6 @@ type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember 
 type ArgFilter<T> = (arg: (string | undefined)[], message: Message) => T;
 type TreeOptions<U> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter<U>} | 
     {allowDM?: boolean, type: RegExp, argFilter: ArgFilter<U>};
-type NextTree<T, W extends CommandTree<X, any, Y> | null, X extends AbstractPluginData, Y, U> = CommandTree<X, W, {[key in keyof T]: U} & Y, Y>
 
 
 //this might become more useful for compiling actual slash command structures later...
@@ -256,14 +267,36 @@ export enum TreeTypes {
     SUB_COMMAND, STRING, INTEGER, BOOLEAN, USER, CHANNEL, ROLE, OTHER
 }
 
+/**
+ * @param T current params
+ * @param V prev type
+ * @param W prev params
+ * @param X prev-prev params
+ */
+interface Tree<T = {}, V extends Tree<W, any, any> | null = null, W = {}, X = {}> {
+    then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W, X>, T, W>;
+    then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W, X>, T, W>;
 
-//don't mind the jank generic magic after the first genetric
-export abstract class CommandTree<T extends AbstractPluginData, W extends CommandTree<T, any, Z> | null = null, V = {}, Z = {}> extends Command<T> {
+    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & T>): Tree<{[key in keyof U]: string} & T, Tree<T, V, W, X>, T, X>;
+    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & T>):Tree<{[key in keyof U]: string} & T, Tree<T, V, W, X>, T, X>;
+
+    or<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & W>): Tree<{[key in keyof U]: A} & W, V, W, X>;
+    or<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & W>): Tree<{[key in keyof U]: A} & W, V, W, X>;
+
+    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & W>): Tree<{[key in keyof U]: string} & W, V, W, X>;
+    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & W>): Tree<{[key in keyof U]: string} & W, V, W, X>;
+
+    or(): V;
+
+    defaultEval(evalContent: DMCommandEval<{}>): void;
+}
+
+export abstract class CommandTree<T extends AbstractPluginData> extends Command<T> implements Tree {
     readonly head: CommandPart;
     readonly parents: CommandPart[] = [];
     current: CommandPart;
 
-    constructor(name="", aliases: string[]=[], description="", everyoneDefault=false, allowDM=false) {
+    protected constructor(name="", aliases: string[]=[], description="", everyoneDefault=false, allowDM=false) {
         super(name, aliases, "", description, everyoneDefault, allowDM);
         
         this.head = {name: name, match: undefined, type: TreeTypes.OTHER, eval: undefined, next: undefined, allowDM: this.allowDM};
@@ -273,7 +306,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
 
         if (this.head.next === undefined && this.head.eval === undefined) throw new Error(`no branches on "head" for command "${name}"`);
         //cast to remove readonly
-        (<{usage: string}>this).usage = this.compileUsage(this.genUsage(this.head));
+        (<{usage: string}>this).usage = CommandTree.compileUsage(this.genUsage(this.head));
     }
 
     abstract buildCommandTree(): void;
@@ -282,7 +315,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         this.head.eval = evalContent;
     }
 
-    private compileUsage(part: UsagePart): string {
+    private static compileUsage(part: UsagePart): string {
         const matches = [];
         const notMatches = [];
         for (const arg of part.current) {
@@ -327,7 +360,7 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
                     }
                 }
             }
-            const next: (string|null)[] = parts.map(this.compileUsage);
+            const next: (string|null)[] = parts.map(CommandTree.compileUsage);
             if (current.eval !== undefined) next.push(null);
             return {current: [{name: current.name, isMatch: !!current.match}], next: next};
         } else {
@@ -336,14 +369,14 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         }
     }
     
-    then<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
-    then<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A>;
+    
+    then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A}, CommandTree<T>>;
+    then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A}, CommandTree<T>>;
 
-    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
-    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & V>): NextTree<U, CommandTree<T, W, V>, T, V, string>;
-    
-    
-    then<U, A>(name: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, CommandTree<T, W, V>, T, V, A> {
+    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & T>): Tree<{[key in keyof U]: string}, CommandTree<T>>;
+    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & T>):Tree<{[key in keyof U]: string}, CommandTree<T>>;
+
+    then<U, A>(name: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A}>): Tree<{[key in keyof U]: A}, CommandTree<T>> {
         this.parents.push(this.current);
         if (typeof options.type === undefined) {
             options.type = TreeTypes.SUB_COMMAND;
@@ -404,22 +437,14 @@ export abstract class CommandTree<T extends AbstractPluginData, W extends Comman
         return <any>this;
     }
 
-    or<U, A>(name: string & keyof U, options?: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A>;
-    or<U, A>(name: string & keyof U, options?: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A>;
-
-    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & V>): NextTree<U, W, T, Z, string>;
-    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & V>): NextTree<U, W, T, Z, string>;
-
-    or(): W;
-    or(): W;
-
-    or<U, A>(name?: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A} & V>): NextTree<U, W, T, Z, A> | W {
+    //let the interface side handle most of the typing for this one... shouldn't be called on CommandTree anyway as or/then are meant to be chained.
+    or<U, A>(name?: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A}>): never {
         if (!this.parents.length) throw Error("\"or\" on head...");
         this.current = <CommandPart>this.parents.pop();
         // force cast here, at this point the contents of options have been verified by the "or" typescript definitions.
         if (name) this.then<U, A>(name, <any>options, exec);
         //force cast here, jank generic magic goes brr.
-        return <any>this;
+        return <never>this;
     }
 
     private evalTree(current: CommandPart, prevArgs: ([CommandPart, string | undefined])[], remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): void {

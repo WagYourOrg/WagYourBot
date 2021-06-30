@@ -40,7 +40,7 @@ class DVCSetCategory extends CommandTree<DVCData> {
 
 class DVCSetName extends CommandTree<DVCData> {
     constructor() {
-        super("dvcsetname", ["lfpsetgame"], "set name of your dynamic voice channel.");
+        super("dvcsetname", ["lfpsetgame"], "set name of your dynamic voice channel.", true);
     }
 
     buildCommandTree(): void {

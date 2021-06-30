@@ -218,7 +218,8 @@ class ReactRoleMessage extends CommandTree<ReactRoleData> {
             (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
         })
         .or("update", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
-            
+            const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
+            (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
         })
     }
 

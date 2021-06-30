@@ -187,8 +187,14 @@ class ChannelFilterPlugin extends Plugin<ChannelFilterData> {
     }
 
     registerExtraListeners(handler: Handler) {
-        handler.on("message", (msg) => this.doMessageFilter(handler, msg));
-        handler.on("messageUpdate", (oldMsg, newMsg) => this.doMessageFilter(handler, newMsg))
+        handler.on("messageUpdate", async (oldMsg, newMsg) => {
+            if (newMsg.guild) {
+                const {enabled} = await handler.database.getGuild(newMsg.guild.id, handler.defaultPrefix);
+                if (enabled.includes(this.name)) {
+                    this.onMessage(newMsg, handler);
+                }
+            }
+        });
     }
 
     //TODO: threadsafe?
@@ -216,24 +222,20 @@ class ChannelFilterPlugin extends Plugin<ChannelFilterData> {
         }
         this.compiledFilters[guildid] = compiledData;
     }
-
-    async doMessageFilter(handler: Handler, message: PartialMessage | Message) {
+    
+    async onMessage(message: PartialMessage | Message, handler: Handler) {
         if (message.guild) {
-            const {enabled} = await handler.database.getGuild(message.guild.id, handler.defaultPrefix);
-            if (enabled.includes(this.name)) {
-                if (!this.compiledFilters[message.guild.id]) this.compileGuildFilters(message.guild.id, await handler.database.getGuildPluginData(message.guild.id, this.name, this.data));
-                
-                if (this.compiledFilters[message.guild.id]?.global.attachments || this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.attachments) {
-                    if (message.attachments.size > 0) {
-                        message.delete();
-                        return;
-                    }
+            if (!this.compiledFilters[message.guild.id]) this.compileGuildFilters(message.guild.id, await handler.database.getGuildPluginData(message.guild.id, this.name, this.data));
+            if (this.compiledFilters[message.guild.id]?.global.attachments || this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.attachments) {
+                if (message.attachments.size > 0) {
+                    message.delete();
+                    return;
                 }
-                for (const matcher of this.compiledFilters[message.guild.id]?.global.filters.concat(this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.filters ?? []) ?? []) {
-                    if (message.content?.match(matcher)) {
-                        message.delete();
-                        return;
-                    }
+            }
+            for (const matcher of this.compiledFilters[message.guild.id]?.global.filters.concat(this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.filters ?? []) ?? []) {
+                if (message.content?.match(matcher)) {
+                    message.delete();
+                    return;
                 }
             }
         }
