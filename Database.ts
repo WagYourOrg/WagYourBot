@@ -195,7 +195,7 @@ export class SQLDatabase implements Database {
         //SQL is 1 indexed
         count += 1;
         try {
-            const res = (<{MemberID: bigint, Score: number}[]>await conn.query("SELECT MemberID, Score FROM (SELECT MemberID, Score, ROW_NUMBER() OVER (ORDER BY Score DESC) AS RowNo from MemberRank WHERE GuildID=?) t WHERE RowNo BETWEEN ? and ?", [guildID, start, start+count])).map(e => {return {member: e.MemberID.toString(), score: e.Score}});
+            const res = (<{MemberID: bigint, Score: number}[]>await conn.query("SELECT MemberID, Score FROM (SELECT MemberID, Score, ROW_NUMBER() OVER (ORDER BY Score DESC) AS RowNo from MemberRank WHERE GuildID=?) t WHERE RowNo BETWEEN ? and ?", [guildID, start+1, start+count])).map(e => {return {member: e.MemberID.toString(), score: e.Score}});
             return res;
         } finally {
             conn.release();

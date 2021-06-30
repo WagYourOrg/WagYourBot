@@ -22,6 +22,7 @@ export abstract class Handler extends BaseClient {
     abstract registerPlugins(): void;
 
     async onMessage(message: Message) {
+        if (message.author.bot) return;
         const guildID = message.guild?.id;
         let content = message.content;
         try {
@@ -201,25 +202,11 @@ export abstract class Command<T extends AbstractPluginData> {
     /**
      * do **not** await this... 
      */
-    static async paginateData(channel: TextChannel | DMChannel | NewsChannel, handler: Handler, baseEmbed: RichEmbed, lines: string[], maxLines = 20) {
-        let i = 0;
-        let j = 0;
-        const pages: string[][] = [[]];
-        for (const line of lines) {
-            if (j + line.length > 1999 || i >= maxLines) {
-                i = 1;
-                j = line.length + 1;
-                pages.push([line]);
-            } else {
-                ++i;
-                j += line.length + 1;
-                pages[pages.length - 1].push(line);
-            }
-        }
+    static async paginateData(channel: TextChannel | DMChannel | NewsChannel, handler: Handler, baseEmbed: RichEmbed, lines: {length: number, slice: (start: number, end: number) => string[] | Promise<string[]>}, linesPerPage = 20) {
         let currentPage = 0;
-        let maxPages = pages.length;
+        let maxPages = Math.ceil(lines.length / linesPerPage);
         if (maxPages > 1) {
-            let message = await channel.send(new RichEmbed(baseEmbed).setDescription(pages[currentPage].join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
+            let message = await channel.send(new RichEmbed(baseEmbed).setDescription((await lines.slice(0, linesPerPage)).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
             await message.react("⬅️");
             await message.react("➡️");
             let reaction: MessageReaction | null = null;
@@ -229,11 +216,11 @@ export abstract class Command<T extends AbstractPluginData> {
                 if (currentPage > 0 && reaction?.emoji?.name === "⬅️") --currentPage;
                 else if (currentPage + 1 < maxPages && reaction?.emoji?.name === "➡️") ++currentPage;
                 else continue;
-                message.edit(new RichEmbed(baseEmbed).setDescription(pages[currentPage].join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
+                message.edit(new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
             } while (reaction);
             
         } else {
-            channel.send(new RichEmbed(baseEmbed).setDescription(pages[0].join("\n")));
+            channel.send(new RichEmbed(baseEmbed).setDescription((await lines.slice(0, lines.length)).join("\n")));
         }
     }
 }
@@ -271,20 +258,19 @@ export enum TreeTypes {
  * @param T current params
  * @param V prev type
  * @param W prev params
- * @param X prev-prev params
  */
-interface Tree<T = {}, V extends Tree<W, any, any> | null = null, W = {}, X = {}> {
-    then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W, X>, T, W>;
-    then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W, X>, T, W>;
+interface Tree<T = {}, V extends Tree<W, any, any> | null = null, W = {}> {
+    then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W>, T>;
+    then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W>, T>;
 
-    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & T>): Tree<{[key in keyof U]: string} & T, Tree<T, V, W, X>, T, X>;
-    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & T>):Tree<{[key in keyof U]: string} & T, Tree<T, V, W, X>, T, X>;
+    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & T>): Tree<{[key in keyof U]: string} & T, Tree<T, V, W>, T>;
+    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & T>):Tree<{[key in keyof U]: string} & T, Tree<T, V, W>, T>;
 
-    or<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & W>): Tree<{[key in keyof U]: A} & W, V, W, X>;
-    or<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & W>): Tree<{[key in keyof U]: A} & W, V, W, X>;
+    or<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & W>): Tree<{[key in keyof U]: A} & W, V, W>;
+    or<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & W>): Tree<{[key in keyof U]: A} & W, V, W>;
 
-    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & W>): Tree<{[key in keyof U]: string} & W, V, W, X>;
-    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & W>): Tree<{[key in keyof U]: string} & W, V, W, X>;
+    or<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & W>): Tree<{[key in keyof U]: string} & W, V, W>;
+    or<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & W>): Tree<{[key in keyof U]: string} & W, V, W>;
 
     or(): V;
 
@@ -370,11 +356,11 @@ export abstract class CommandTree<T extends AbstractPluginData> extends Command<
     }
     
     
-    then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A}, CommandTree<T>>;
-    then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A}, CommandTree<T>>;
+    then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A}>): Tree<{[key in keyof U]: A}, CommandTree<T>>;
+    then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A}>): Tree<{[key in keyof U]: A}, CommandTree<T>>;
 
-    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string} & T>): Tree<{[key in keyof U]: string}, CommandTree<T>>;
-    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string} & T>):Tree<{[key in keyof U]: string}, CommandTree<T>>;
+    then<U>(name: string & keyof U, options?: {allowDM: true} & TreeOptions<string>, exec?: DMCommandEval<{[key in keyof U]: string}>): Tree<{[key in keyof U]: string}, CommandTree<T>>;
+    then<U>(name: string & keyof U, options?: {allowDM?: false} & TreeOptions<string>, exec?: CommandEval<{[key in keyof U]: string}>):Tree<{[key in keyof U]: string}, CommandTree<T>>;
 
     then<U, A>(name: string & keyof U, options: TreeOptions<A> = {}, exec?: CommandEval<{[key in keyof U]: A}>): Tree<{[key in keyof U]: A}, CommandTree<T>> {
         this.parents.push(this.current);
