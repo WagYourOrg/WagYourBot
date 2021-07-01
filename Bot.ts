@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, realpathSync, symlinkSync } from "fs";
-import { Handler } from "./Handler";
+import { Handler } from "./bot/Handler";
 
 class WagYourBot extends Handler {
     constructor() {
-        super("!!");
+        super("174312969386196993");
 
         this.on("ready", () => {
             this.user?.setPresence({activity: { name: "bot.wagyourtail.xyz"}, status: 'online'});
@@ -19,15 +19,13 @@ class WagYourBot extends Handler {
         for (const plugin of folders) {
             this.registerPlugin(require(`./plugins/${plugin}/${plugin}.js`).plugin);
             //console.log(plugin);
-            if (existsSync(`./plugins/${plugin}/web/views`) && !existsSync(`./views/plugins/${plugin}`)) {
-                symlinkSync(realpathSync(`./plugins/${plugin}/web/views`), `./views/plugins/${plugin}`);
+            if (!existsSync(`./web/views/plugins/${plugin}`)) {
+                symlinkSync(realpathSync(`./plugins/${plugin}`), `./web/views/plugins/${plugin}`, process.cwd().match(/^[A-Z]:\\/) ? "junction" : "file");
             }
         }
-    }   
+    }
 }
 
 const bot = new WagYourBot();
 
-bot.database.getClientToken("174312969386196993").then(token => {
-    bot.login(token);
-}).catch(console.error);
+bot.login().catch(console.error);

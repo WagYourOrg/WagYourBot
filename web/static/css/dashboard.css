@@ -1,0 +1,151 @@
+body {
+    overflow: hidden;
+    font-family: 'Segoe UI';
+    margin: 0px;
+}
+
+.topbar {
+    border-bottom: 2px solid #383838;
+}
+
+.content {
+    display: grid;
+    grid-template-columns: 200px auto;
+}
+
+.sidebar {
+    line-height: 50px;
+    background-color: #282828;
+    border-right: 2px solid #484878;
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scrollbar-width: none;
+    color: white;
+}
+
+#guilds {
+    width: 198px;
+    margin-top: 5px;
+}
+
+#addGuild {
+    position: absolute;
+    bottom: 63px;
+    width: 198px;
+}
+
+.guildSelector {
+    display: block;
+    white-space: nowrap;
+    margin-bottom: 5px;
+    cursor: pointer;
+    color: white;
+    text-decoration: none;
+    padding: 2px 0;
+}
+
+.guildSelector:hover {
+    background-color: #323232;
+}
+
+.guildSelector.currentGuild {
+    background-color: #7777FF60;
+}
+
+.guildSelector img {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 20px;
+    padding-left: 5px;
+    border-radius: 50%;
+}
+
+.main {
+    background-color: #7777FF;
+}
+
+.saveBar {
+    display: grid;
+    background-color: white;
+    grid-template-columns: min-content auto 100px 100px 20px;
+    margin-top: 0px;
+    padding: 15px 0px;
+}
+
+.saveBar h1 {
+    margin: 0;
+    padding: 0px 20px;
+}
+
+#reset {
+    background-color: #4C4C4C;
+    border: none;
+    color: white;
+    margin-right: 5px;
+    padding: 10px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#reset:hover {
+    background-color: #535353;
+}
+
+#submit {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    margin-left: 5px;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#submit:hover {
+    background-color: #53B656;
+}
+
+.pluginContent {
+    scrollbar-width: none;
+    overflow-y: scroll;
+}
+
+.commands {
+    margin-top: 20px;
+}
+
+.command {
+    vertical-align: top;
+    display: inline-block;
+    color: white;
+    background-color: #5C5C5C;
+    padding: 20px;
+    margin: 10px;
+    border: 2px solid #333333;
+}
+
+.input {
+    border-radius: 10px;
+    background-color: #888888;
+    padding: 5px;
+    margin: 2px;
+}
+
+.input input {
+    border-style: none;
+    background-color: #888888;
+}
+
+.input .button {
+    font-weight: bold;
+    font-size: 18px;
+    color: white;
+    cursor: pointer;
+}

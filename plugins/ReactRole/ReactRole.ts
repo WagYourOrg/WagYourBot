@@ -1,12 +1,7 @@
 import { Guild, GuildChannel, Message, NewsChannel, Snowflake, TextChannel } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
-import { AbstractPluginData } from "../../Structures";
-
-interface ReactRoleData extends AbstractPluginData {
-    roles: {[emoji: string]: Snowflake | undefined},
-    channel?: Snowflake,
-    message: Snowflake[]
-}
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
+import {ReactRoleData} from "./ReactRole.common";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 class ReactRole extends CommandTree<ReactRoleData> {
     
@@ -225,7 +220,7 @@ class ReactRoleMessage extends CommandTree<ReactRoleData> {
 
 }
 
-class ReactRolePlugin extends Plugin<ReactRoleData> {
+class ReactRolePlugin extends WebPlugin<ReactRoleData> {
     registerExtraListeners(handler: Handler) {
         handler.on("messageReactionAdd", async (reaction, user) => {
             try {

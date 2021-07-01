@@ -1,5 +1,5 @@
 import {createClient} from 'redis';
-import { PluginAliases, AbstractPluginData, PluginPerms, Database, PluginSlug } from './Structures';
+import { PluginAliases, PluginPerms, Database, PluginSlug } from './Structures';
 
 export class OldDatabase implements Database {
     readonly db = createClient({db: 1});
@@ -74,7 +74,7 @@ export class OldDatabase implements Database {
         });
     }
 
-    getGuildPluginData<T extends AbstractPluginData>(guildID: string, plugin: string, defaultData: T) {
+    getGuildPluginData<T>(guildID: string, plugin: string, defaultData: T) {
         return new Promise<T>((resolve, reject) => {
             this.db.hget(`Guilds:${guildID}:Plugins:${plugin}`, "Data", (error, reply) => {
                 if (reply) {
@@ -87,7 +87,7 @@ export class OldDatabase implements Database {
         });
     }
 
-    setGuildPluginData<T extends AbstractPluginData>(guildID: string, plugin: string, data: T) {
+    setGuildPluginData<T>(guildID: string, plugin: string, data: T) {
         return new Promise<void>((res, rej) => {
             this.db.hset(`Guilds:${guildID}:Plugins:${plugin}`, "Data", JSON.stringify(data));
             res();

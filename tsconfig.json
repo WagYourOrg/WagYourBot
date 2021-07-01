@@ -1,15 +1,24 @@
 {
     "compilerOptions": {
         "lib": [
-            "ES2020"
+            "ES2020", "DOM"
         ],
         "target": "ES2020",
         "module": "CommonJS",
         "declaration": false,
-        "strict": true
+        "strict": true,
+        "jsx": "react",
+        "esModuleInterop": true,
+        "experimentalDecorators": true
     },
     "include": [
         "**.ts",
-        "plugins/*/**.ts"
+        "plugins/*/**.ts",
+        "web/**.ts",
+        "web/views/**.tsx",
+        "web/views/plugins/null/**.ts",
+        "web/views/plugins/*/**.tsx",
+        "web/views/globals/**.tsx",
+        "web/static/js/**.ts"
     ]
 }

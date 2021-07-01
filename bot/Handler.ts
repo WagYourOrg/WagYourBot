@@ -1,25 +1,30 @@
-import { Channel, ClientUser, MessageEmbedOptions, MessageReaction, NewsChannel } from "discord.js";
-import { Client as BaseClient, Collection, DiscordAPIError, DMChannel, Emoji, Guild, GuildMember, Message, MessageEmbed, TextChannel, User } from "discord.js";
-import { SQLDatabase } from "./Database";
-import { PluginAliases, PluginPerms, Database, PluginSlug, AbstractPluginData } from "./Structures";
+import { ClientUser, MessageEmbedOptions, MessageReaction, NewsChannel } from "discord.js";
+import { Client as BaseClient, DMChannel, Guild, GuildMember, Message, MessageEmbed, TextChannel, User } from "discord.js";
+import { SQLDatabase } from "../Database";
+import { PluginAliases, PluginPerms, Database, PluginSlug } from "../Structures";
 
 
 export abstract class Handler extends BaseClient {
-    readonly defaultPrefix;
+    readonly defaultPrefix = "!!";
     readonly database: Database;
     readonly plugins: Plugin<any>[] = [];
     readonly owner = "100748674849579008";
+    readonly clientID;
 
-    constructor(defaultPrefix: string) {
+    protected constructor(clientID: string) {
         super();
-        this.defaultPrefix = defaultPrefix;
+        this.clientID = clientID;
         this.registerPlugins();
-        this.database = new SQLDatabase(this.plugins.map(e => e.name));
+        this.database = new SQLDatabase(this.plugins.map(e => e.name), clientID);
 
         this.on("message", this.onMessage);
     }
 
     abstract registerPlugins(): void;
+
+    async login() {
+        return await super.login(await this.database.getClientToken(this.clientID));
+    }
 
     async onMessage(message: Message) {
         if (message.author.bot) return;
@@ -60,7 +65,7 @@ export abstract class Handler extends BaseClient {
     }
 }
 
-export class Plugin<T extends AbstractPluginData> {
+export class Plugin<T> {
     readonly name: PluginSlug;
     readonly description: string;
     readonly aliases: PluginAliases = {};
@@ -84,7 +89,8 @@ export class Plugin<T extends AbstractPluginData> {
 
     /**
      * pre-checked event listener for plugin enabled, all the others can be registered with {@link Plugin#registerExtraListeners(Handler)}
-     * @param message 
+     * @param message
+     * @param handler
      */
     async onMessage(message: Message, handler: Handler) {}
 
@@ -135,7 +141,7 @@ export class RichEmbed extends MessageEmbed {
     }
 }
 
-export abstract class Command<T extends AbstractPluginData> {
+export abstract class Command<T> {
     readonly name;
     readonly aliases;
     readonly usage;
@@ -144,7 +150,7 @@ export abstract class Command<T extends AbstractPluginData> {
     readonly allowDM;
     plugin!: Plugin<T>;
 
-    constructor(name="", aliases: string[]=[], usage="", description="", everyoneDefault=false, allowDM=false) {
+    protected constructor(name="", aliases: string[]=[], usage="", description="", everyoneDefault=false, allowDM=false) {
         this.name = name;
         this.aliases = aliases;
         this.usage = usage;
@@ -277,7 +283,7 @@ interface Tree<T = {}, V extends Tree<W, any, any> | null = null, W = {}> {
     defaultEval(evalContent: DMCommandEval<{}>): void;
 }
 
-export abstract class CommandTree<T extends AbstractPluginData> extends Command<T> implements Tree {
+export abstract class CommandTree<T> extends Command<T> implements Tree {
     readonly head: CommandPart;
     readonly parents: CommandPart[] = [];
     current: CommandPart;

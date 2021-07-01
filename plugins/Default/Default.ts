@@ -1,8 +1,6 @@
 import { GuildMember, User, TextChannel, DMChannel, NewsChannel, Message, Guild } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
-import { AbstractPluginData } from "../../Structures";
-
-interface DefaultData extends AbstractPluginData {}
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 class Help extends CommandTree<DefaultData> {
     constructor() {
@@ -380,7 +378,7 @@ class Plugins extends CommandTree<DefaultData> {
     
 }
 
-export const plugin = new Plugin<DefaultData>("Default", "Default enabled stuff, don't disable", {});
+export const plugin = new WebPlugin<DefaultData>("Default", "Default enabled stuff, don't disable", {});
 plugin.addCommand(new Help());
 plugin.addCommand(new Permissions());
 plugin.addCommand(new Aliases());

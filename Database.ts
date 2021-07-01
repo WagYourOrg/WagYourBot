@@ -1,10 +1,12 @@
-import { createPool } from "mariadb"
-import { PluginAliases, AbstractPluginData, PluginPerms, Database, PluginSlug } from "./Structures";
+import {createPool} from "mariadb"
+import {Database, PluginAliases, PluginPerms, PluginSlug} from "./Structures";
 
 export class SQLDatabase implements Database {
     readonly mdb = createPool({host: "127.0.0.1", user: "wagyourbot", password: "123456", connectionLimit: 5, database: "WagYourBot", supportBigInt: true});
+    readonly clientID: string | undefined;
 
-    constructor(plugins: PluginSlug[]) {
+    constructor(plugins: PluginSlug[], clientID?: string) {
+        this.clientID = clientID;
         this.setup(plugins).catch(e => {throw e});
     }
 
@@ -12,7 +14,7 @@ export class SQLDatabase implements Database {
         const conn = await this.mdb.getConnection();
         try {
             conn.query("CREATE TABLE IF NOT EXISTS Secrets(ClientID BigInt PRIMARY KEY, Token TINYTEXT, Secret TINYTEXT);");
-            conn.query("CREATE TABLE IF NOT EXISTS Guilds(GuildID BigInt PRIMARY KEY, Plugins JSON, Prefix TINYTEXT);");
+            conn.query("CREATE TABLE IF NOT EXISTS Guilds(GuildID BigInt PRIMARY KEY, Plugins JSON, Prefix TINYTEXT, ClientID BigInt);");
             conn.query("CREATE TABLE IF NOT EXISTS MemberRank(MidGid VARCHAR(255) PRIMARY KEY, MemberID BIGINT, GuildID BIGINT, Score INT, LastMsg INT, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID));");
             for (const plugin of plugins) {
                 conn.query(`CREATE TABLE IF NOT EXISTS Plugin${plugin}(GuildID BIGINT PRIMARY KEY, Aliases JSON, Perms JSON, Data JSON, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID))`);
@@ -70,16 +72,19 @@ export class SQLDatabase implements Database {
         }
     }
 
-    async getGuild(guildID: string, defaultPrefix: string): Promise<{ prefix: string; enabled: string[]; }> {
+    async getGuild(guildID: string, defaultPrefix: string): Promise<{ prefix: string, enabled: string[], clientID?: string}> {
         const conn = await this.mdb.getConnection();
         try {
-            const res: {prefix: string | null, enabled: string[]}[] = (<{Plugins: string[], Prefix: string}[]>await conn.query("SELECT Plugins, Prefix FROM Guilds WHERE GuildID=?", [guildID])).map(e => {return {prefix: e.Prefix, enabled: e.Plugins}});
+            const res: {prefix: string | null, enabled: string[], clientID: string}[] = (<{Plugins: string[], Prefix: string, ClientID: string}[]>await conn.query("SELECT Plugins, Prefix, ClientID FROM Guilds WHERE GuildID=?", [guildID])).map(e => {return {prefix: e.Prefix, enabled: e.Plugins, clientID: e.ClientID}});
             if (res.length) {
                 if (res[0].prefix == null) res[0].prefix = defaultPrefix;
-                return <{prefix: string, enabled: string[]}>res[0];
+                if (this.clientID && res[0].clientID !== this.clientID) {
+                    await conn.query("UPDATE Guilds SET ClientID=? WHERE GuildID=?", [this.clientID, guildID]);
+                }
+                return <{prefix: string, enabled: string[], clientID: string}>res[0];
             }
-            conn.query("INSERT INTO Guilds VALUES (?, ?, ?)", [guildID, "[\"Default\"]", defaultPrefix]);
-            return {prefix: defaultPrefix, enabled: ["Default"]};
+            conn.query("INSERT INTO Guilds VALUES (?, ?, ?, ?)", [guildID, "[\"Default\"]", defaultPrefix, this.clientID]);
+            return {prefix: defaultPrefix, enabled: ["Default"], clientID: this.clientID};
         } finally {
             conn.release();
         }
@@ -118,7 +123,7 @@ export class SQLDatabase implements Database {
         }
     }
 
-    async getGuildPluginData<T extends AbstractPluginData>(guildID: string, plugin: string, defaultData: T): Promise<T> {
+    async getGuildPluginData<T>(guildID: string, plugin: string, defaultData: T): Promise<T> {
         const conn = await this.mdb.getConnection();
         try {
             const res = (<{Data: T | null}[]>await conn.query(`SELECT Data FROM Plugin${plugin} WHERE GuildID=?`, [guildID])).map(e => e.Data);
@@ -136,7 +141,7 @@ export class SQLDatabase implements Database {
         }
     }
 
-    async setGuildPluginData<T extends AbstractPluginData>(guildID: string, plugin: string, data: T): Promise<void> {
+    async setGuildPluginData<T>(guildID: string, plugin: string, data: T): Promise<void> {
         const conn = await this.mdb.getConnection();
         try {
             conn.query(`INSERT INTO Plugin${plugin} VALUES (?, null, null, ?) ON DUPLICATE KEY UPDATE Data=?`, [guildID, data, data]);
@@ -195,8 +200,9 @@ export class SQLDatabase implements Database {
         //SQL is 1 indexed
         count += 1;
         try {
-            const res = (<{MemberID: bigint, Score: number}[]>await conn.query("SELECT MemberID, Score FROM (SELECT MemberID, Score, ROW_NUMBER() OVER (ORDER BY Score DESC) AS RowNo from MemberRank WHERE GuildID=?) t WHERE RowNo BETWEEN ? and ?", [guildID, start+1, start+count])).map(e => {return {member: e.MemberID.toString(), score: e.Score}});
-            return res;
+            return (<{ MemberID: bigint, Score: number }[]>await conn.query("SELECT MemberID, Score FROM (SELECT MemberID, Score, ROW_NUMBER() OVER (ORDER BY Score DESC) AS RowNo from MemberRank WHERE GuildID=?) t WHERE RowNo BETWEEN ? and ?", [guildID, start + 1, start + count])).map(e => {
+                return {member: e.MemberID.toString(), score: e.Score}
+            });
         } finally {
             conn.release();
         }

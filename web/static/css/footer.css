@@ -1,0 +1,21 @@
+.footer {
+    background-color: #EEEEEE;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 0 1rem;
+}
+
+.footer h3 {
+    display: grid;
+    grid-template-columns: auto auto;
+}
+
+.footer h3 #left {
+    text-align: left
+}
+
+.footer h3 #right {
+    text-align: right
+}

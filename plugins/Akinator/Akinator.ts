@@ -1,9 +1,8 @@
 import { GuildMember, User, Guild, TextChannel, DMChannel, NewsChannel, Message, MessageReaction } from "discord.js";
-import { Command, Handler, Plugin, RichEmbed } from "../../Handler";
+import { Command, Handler, Plugin, RichEmbed } from "../../bot/Handler";
 import { Aki } from "aki-api.ts";
-import { AbstractPluginData } from "../../Structures";
-
-interface AkinatorData extends AbstractPluginData {}
+import {AkinatorData} from "./Akinator.common";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 class Akinator extends Command<AkinatorData> {
     constructor() {
@@ -43,5 +42,5 @@ class Akinator extends Command<AkinatorData> {
     }   
 }
 
-export const plugin = new Plugin<AkinatorData>("Akinator", "Akinator game in discord.", {});
+export const plugin = new WebPlugin<AkinatorData>("Akinator", "Akinator game in discord.", {});
 plugin.addCommand(new Akinator());

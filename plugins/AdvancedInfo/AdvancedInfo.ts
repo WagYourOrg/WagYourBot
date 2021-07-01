@@ -1,8 +1,7 @@
 import { GuildMember, User, Guild, TextChannel, DMChannel, NewsChannel, Message } from "discord.js";
-import { Command, Handler, Plugin, RichEmbed } from "../../Handler";
-import { AbstractPluginData } from "../../Structures";
-
-interface AIData extends AbstractPluginData {}
+import { Command, Handler, Plugin, RichEmbed } from "../../bot/Handler";
+import {AIData} from "./AdvancedInfo.common";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 class AIListRoles extends Command<AIData> {
     constructor() {
@@ -19,5 +18,5 @@ class AIListRoles extends Command<AIData> {
     }
 }
 
-export const plugin = new Plugin<AIData>("AdvancedInfo", "Nerd Stuff for Nerds", {});
+export const plugin = new WebPlugin<AIData>("AdvancedInfo", "Nerd Stuff for Nerds", {});
 plugin.addCommand(new AIListRoles());

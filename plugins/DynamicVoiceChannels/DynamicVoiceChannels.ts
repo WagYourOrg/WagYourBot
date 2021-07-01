@@ -1,10 +1,7 @@
 import { CategoryChannel, Snowflake } from "discord.js";
-import { CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
-import { AbstractPluginData } from "../../Structures";
-
-interface DVCData extends AbstractPluginData {
-    id?: Snowflake;
-}
+import { CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
+import {DVCData} from "./DynamicVoiceChannels.common";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 class DVCSetCategory extends CommandTree<DVCData> {
     constructor() {
@@ -53,7 +50,7 @@ class DVCSetName extends CommandTree<DVCData> {
     }
 }
 
-class DVCPlugin extends Plugin<DVCData> {
+class DVCPlugin extends WebPlugin<DVCData> {
     registerExtraListeners(handler: Handler) {
 
         handler.on("voiceStateUpdate", async (oldVoice, newVoice) => {

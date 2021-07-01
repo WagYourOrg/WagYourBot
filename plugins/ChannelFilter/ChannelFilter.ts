@@ -1,19 +1,7 @@
 import { Message, PartialMessage } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
-import { AbstractPluginData } from "../../Structures";
-
-interface ChannelFilterData extends AbstractPluginData {
-    channels: {
-            [key: string]: {
-            filters: string[],
-            attachments: boolean
-        } | undefined
-    },
-    global: {
-        filters: string[],
-        attachments: boolean
-    }
-}
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
+import {ChannelFilterData} from "./ChannelFilter.common";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 class ChannelFilter extends CommandTree<ChannelFilterData> {
     constructor() {
@@ -166,7 +154,7 @@ class ChannelFilter extends CommandTree<ChannelFilterData> {
     
 }
 
-class ChannelFilterPlugin extends Plugin<ChannelFilterData> {
+class ChannelFilterPlugin extends WebPlugin<ChannelFilterData> {
     readonly compiledFilters: { [key: string]: {
         channels: { 
             [key: string]: {

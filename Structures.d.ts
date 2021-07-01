@@ -16,8 +16,8 @@ export interface Database {
     getGuild(guildID: Snowflake, defaultPrefix: string): Promise<{prefix: string, enabled: PluginSlug[]}>;
     checkGuildPlugin(guildID: string, plugin: PluginSlug): Promise<boolean>;
     getGuildPluginAliasesAndPerms<T extends PluginAliases, U extends PluginPerms>(guildID: Snowflake, plugin: PluginSlug, defaultPluginAliases: T, defaultPluginPerms: U): Promise<{aliases: T, perms: U}>;
-    getGuildPluginData<T extends AbstractPluginData>(guildID: Snowflake, plugin: PluginSlug, defaultData: T): Promise<T>;
-    setGuildPluginData<T extends AbstractPluginData>(guildID: Snowflake, plugin: PluginSlug, data: T): Promise<void>;
+    getGuildPluginData<T extends {}>(guildID: Snowflake, plugin: PluginSlug, defaultData: T): Promise<T>;
+    setGuildPluginData<T extends {}>(guildID: Snowflake, plugin: PluginSlug, data: T): Promise<void>;
     setGuildPluginAliases<T extends PluginAliases>(guildID: Snowflake, plugin: PluginSlug, aliases: T): Promise<void>;
     setGuildPluginPerms<T extends PluginPerms>(guildID: Snowflake, plugin: PluginSlug, perms: T): Promise<void>;
     setGuildPrefix(guildID: Snowflake, prefix: string): Promise<void>;
@@ -39,6 +39,5 @@ export interface PluginAliases {
 export interface PluginPerms {
     [key: string]: string[] | undefined;
 }
-export interface AbstractPluginData {}
 
 export type PluginSlug = string;

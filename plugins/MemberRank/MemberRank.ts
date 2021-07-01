@@ -1,16 +1,7 @@
 import { Guild, GuildMember, Message, Role, Snowflake } from "discord.js";
-import { stat } from "fs";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
-import { AbstractPluginData } from "../../Structures";
-
-interface MemberRankData extends AbstractPluginData {
-    dynamic: {
-        [key: number]: Snowflake | undefined;
-    },
-    static: {
-        [key: number]: Snowflake | undefined;
-    }
-}
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
+import {MemberRankData} from "./MemberRank.common";
+import {WebPlugin} from "../../web/WagYourBotWeb";
 
 function getPoints(timeSinceLast: number): number {
     if (timeSinceLast <= 30) {
@@ -230,7 +221,7 @@ class MRTop extends CommandTree<MemberRankData> {
 
 }
 
-class MemberRankPlugin extends Plugin<MemberRankData> {
+class MemberRankPlugin extends WebPlugin<MemberRankData> {
     registerExtraListeners(handler: Handler) {
 
     }
