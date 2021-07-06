@@ -1,6 +1,6 @@
 import { CommandTree } from "../bot/Handler";
 import { Plugin } from "../bot/Handler";
-import {PluginData} from "./PluginName.common";
+import {PluginData} from "./PluginNamecommon";
 
 class CommandTemplate extends CommandTree<PluginData> {
     constructor() {

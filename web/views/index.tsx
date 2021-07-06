@@ -15,12 +15,23 @@ export default class Index extends Component<IndexProps> {
                 <link rel="stylesheet" type="text/css" href="/static/css/topbar.css" />
                 <link rel="stylesheet" type="text/css" href="/static/css/footer.css" />
 
-                <script defer src="/static/js/index.js"></script>
+                <script defer src="/static/js/index.js" />
             </head>
             <body>
                 {new Topbar(this.props).render()}
+                <div className= "content">
+                    <h1>Automate Your Discord Server</h1>
+                    <h2>Have a dynamic bot with just the features you need!</h2>
+                    <div className= "inline">
+                        <a id= "add" href= "https://discordapp.com/api/oauth2/authorize?client_id=520769818870415380&scope=bot&permissions=8" target= "_blank">
+                            <img src= "/static/images/discord.png" height= "50px" width= "50px"/>
+                            Add To Discord
+                        </a>
+                    </div>
+                    {/* @ts-ignore */}
+                    <iframe src= "https://discordapp.com/widget?id=646759800050286612&theme=dark" width= "350" height= "350" allowtransparency= "true" frameBorder= "0" />
+                </div>
                 {new Footer(this.props).render()}
-
             </body>
         </html>
     }

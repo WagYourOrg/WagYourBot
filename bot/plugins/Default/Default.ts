@@ -1,6 +1,6 @@
 import { GuildMember, User, TextChannel, DMChannel, NewsChannel, Message, Guild } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
-import {WebPlugin} from "../../web/WagYourBotWeb";
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
+import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class Help extends CommandTree<DefaultData> {
     constructor() {

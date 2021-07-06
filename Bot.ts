@@ -15,13 +15,9 @@ class WagYourBot extends Handler {
         if (!existsSync("./plugins")) {
             mkdirSync("./plugins");
         }
-        const folders = readdirSync("./plugins");
+        const folders = readdirSync("./bot/plugins");
         for (const plugin of folders) {
-            this.registerPlugin(require(`./plugins/${plugin}/${plugin}.js`).plugin);
-            //console.log(plugin);
-            if (!existsSync(`./web/views/plugins/${plugin}`)) {
-                symlinkSync(realpathSync(`./plugins/${plugin}`), `./web/views/plugins/${plugin}`, process.cwd().match(/^[A-Z]:\\/) ? "junction" : "file");
-            }
+            this.registerPlugin(require(`./bot/plugins/${plugin}/${plugin}.js`).plugin);
         }
     }
 }

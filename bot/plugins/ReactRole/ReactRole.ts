@@ -1,7 +1,7 @@
 import { Guild, GuildChannel, Message, NewsChannel, Snowflake, TextChannel } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
-import {ReactRoleData} from "./ReactRole.common";
-import {WebPlugin} from "../../web/WagYourBotWeb";
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
+import {ReactRoleData} from "./ReactRolecommon";
+import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class ReactRole extends CommandTree<ReactRoleData> {
     

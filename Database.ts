@@ -171,7 +171,7 @@ export class SQLDatabase implements Database {
     async setGuildPrefix(guildID: string, prefix: string): Promise<void> {
         const conn = await this.mdb.getConnection();
         try {
-            conn.query("INSERT INTO Guilds VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE Prefix=?", [guildID, "[\"Default\"]", prefix, prefix]);
+            conn.query("INSERT INTO Guilds VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE Prefix=?, ClientID=?", [guildID, "[\"Default\"]", prefix, this.clientID ?? null, prefix, this.clientID ?? null]);
         } finally {
             conn.release();
         }
@@ -180,7 +180,7 @@ export class SQLDatabase implements Database {
     async setGuildEnabled(guildID: string, plugins: string[]): Promise<void> {
         const conn = await this.mdb.getConnection();
         try {
-            conn.query("INSERT INTO Guilds VALUES (?, ?, null) ON DUPLICATE KEY UPDATE Plugins=?", [guildID, JSON.stringify(plugins), JSON.stringify(plugins)]);
+            conn.query("INSERT INTO Guilds VALUES (?, ?, null, ?) ON DUPLICATE KEY UPDATE Plugins=?, ClientID=?", [guildID, JSON.stringify(plugins), this.clientID ?? null, JSON.stringify(plugins), this.clientID ?? null]);
         } finally {
             conn.release();
         }

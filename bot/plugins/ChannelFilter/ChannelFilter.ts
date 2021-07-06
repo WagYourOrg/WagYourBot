@@ -1,7 +1,7 @@
 import { Message, PartialMessage } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
-import {ChannelFilterData} from "./ChannelFilter.common";
-import {WebPlugin} from "../../web/WagYourBotWeb";
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
+import {ChannelFilterData} from "./ChannelFiltercommon";
+import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class ChannelFilter extends CommandTree<ChannelFilterData> {
     constructor() {

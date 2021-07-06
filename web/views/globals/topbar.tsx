@@ -20,7 +20,7 @@ export default class Topbar extends Component<TopbarProps> {
             {
             this.props.loginStatus ?
                 <a id="login" href="/dashboard">
-                    <img src={this.props.userAvatar} />
+                    <img src={this.props.userAvatar} width= "50px" height= "50px" />
                     {this.props.userName}
                 </a>
             :

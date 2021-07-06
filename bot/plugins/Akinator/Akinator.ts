@@ -1,8 +1,8 @@
 import { GuildMember, User, Guild, TextChannel, DMChannel, NewsChannel, Message, MessageReaction } from "discord.js";
-import { Command, Handler, Plugin, RichEmbed } from "../../bot/Handler";
+import { Command, Handler, Plugin, RichEmbed } from "../../Handler";
 import { Aki } from "aki-api.ts";
-import {AkinatorData} from "./Akinator.common";
-import {WebPlugin} from "../../web/WagYourBotWeb";
+import {AkinatorData} from "./Akinatorcommon";
+import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class Akinator extends Command<AkinatorData> {
     constructor() {

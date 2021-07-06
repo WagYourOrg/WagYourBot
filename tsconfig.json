@@ -7,13 +7,13 @@
         "module": "CommonJS",
         "declaration": false,
         "strict": true,
-        "jsx": "react",
+        "jsx": "react-jsx",
         "esModuleInterop": true,
         "experimentalDecorators": true
     },
     "include": [
         "**.ts",
-        "plugins/*/**.ts",
+      "bot/plugins/*/**.ts",
         "web/**.ts",
         "web/views/**.tsx",
         "web/views/plugins/null/**.ts",

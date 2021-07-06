@@ -1,7 +1,7 @@
 import { Guild, GuildMember, Message, Role, Snowflake } from "discord.js";
-import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../bot/Handler";
-import {MemberRankData} from "./MemberRank.common";
-import {WebPlugin} from "../../web/WagYourBotWeb";
+import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
+import {MemberRankData} from "./MemberRankcommon";
+import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 function getPoints(timeSinceLast: number): number {
     if (timeSinceLast <= 30) {

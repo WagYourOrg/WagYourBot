@@ -1,7 +1,7 @@
 import { GuildMember, User, Guild, TextChannel, DMChannel, NewsChannel, Message } from "discord.js";
-import { Command, Handler, Plugin, RichEmbed } from "../../bot/Handler";
-import {AIData} from "./AdvancedInfo.common";
-import {WebPlugin} from "../../web/WagYourBotWeb";
+import { Command, Handler, Plugin, RichEmbed } from "../../Handler";
+import {AIData} from "./AdvancedInfocommon";
+import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class AIListRoles extends Command<AIData> {
     constructor() {
