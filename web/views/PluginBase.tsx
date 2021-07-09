@@ -24,7 +24,7 @@ export default abstract class PluginBase<T extends PluginProps = PluginProps> ex
         const aliases: JSX.Element[] = [];
         for (const alias of this.props.pluginData.aliases[command.name] ?? command.aliases) {
             aliases.push(<div className= "input" key= {aliases.length}>
-                <input className= "alias" type= "text" name= {`${command.name}.aliases`} value= {alias} data-lpignore= "true" />
+                <input className= "alias" type= "text" name= {`${command.name}.aliases`} defaultValue= {alias} data-lpignore= "true" />
                 <input type= "button" className= "button" value= "x" data-onclick= "this.parentNode.remove()" />
             </div>);
         }
@@ -37,9 +37,9 @@ export default abstract class PluginBase<T extends PluginProps = PluginProps> ex
 
     private createPerms(command: Command<any>): JSX.Element[] {
         const perms: JSX.Element[] = [];
-        for (const perm of this.props.pluginData.perms[command.name] ?? command.aliases) {
+        for (const perm of this.props.pluginData.perms[command.name] ?? command.perms) {
             perms.push(<div className= "input" style= {{border: "1px solid green"}} key= {perms.length}>
-                <input className= "perm" type= "text" name= {`${command.name}.perms`} list= "roles" value= {`@${this.props.pluginData.roles[perm].name.replace('@', '')}`} data-onkeyup= "changeColor(this)" data-onchange= "changeColor(this)" data-onpaste= "changeColor(this)" data-lpignore= "true" style={{color: `#${this.props.pluginData.roles[perm].color}`}} />
+                <input className= "perm" type= "text" name= {`${command.name}.perms`} list= "roles" defaultValue= {`@${this.props.pluginData.roles[perm]?.name.replace('@', '')}`} data-onkeyup= "changeColor(this)" data-onchange= "changeColor(this)" data-onpaste= "changeColor(this)" data-lpignore= "true" style={{color: `#${this.props.pluginData.roles[perm]?.color}`}} />
                 <input type= "button" className= "button" value= "x" data-onclick= "this.parentNode.remove()" />
             </div>);
         }
@@ -76,8 +76,8 @@ export default abstract class PluginBase<T extends PluginProps = PluginProps> ex
     private genRoleDataList(): JSX.Element[] {
         const roles: JSX.Element[] = [];
         for (const [id, role] of Object.entries(this.props.pluginData.roles)) {
-            roles.push(<option style= {{color: `#${role.color}`}} key= {roles.length}>
-                {`@${role.name.replace('@', '')}`}
+            roles.push(<option style= {{color: `#${role?.color}`}} key= {roles.length}>
+                {`@${role?.name.replace('@', '')}`}
             </option>)
         }
         return roles;
@@ -94,15 +94,6 @@ export default abstract class PluginBase<T extends PluginProps = PluginProps> ex
                 {this.style()}
 
                 <script defer src="/static/js/dashboard.js" />
-                <script defer dangerouslySetInnerHTML={{ __html:
-                    `[...document.getElementsByTagName('input')].forEach(e => {
-                        e.setAttribute('onclick', e.getAttribute('data-onclick'));
-                        e.setAttribute('onkeyup', e.getAttribute('data-onkeyup'));
-                        e.setAttribute('onchange', e.getAttribute('data-onchange'));
-                        e.setAttribute('onpaste', e.getAttribute('data-onpaste'));
-                    })`
-                }}>
-                </script>
             </head>
             <body>
                 {new Topbar(this.props).render()}
@@ -139,6 +130,15 @@ export default abstract class PluginBase<T extends PluginProps = PluginProps> ex
                     </div>
                 </div>
                 {new Footer(this.props).render()}
+                <script type="text/javascript" dangerouslySetInnerHTML={{ __html:
+                        `[...document.getElementsByTagName('input')].forEach(e => {
+                        e.setAttribute('onclick', e.getAttribute('data-onclick'));
+                        e.setAttribute('onkeyup', e.getAttribute('data-onkeyup'));
+                        e.setAttribute('onchange', e.getAttribute('data-onchange'));
+                        e.setAttribute('onpaste', e.getAttribute('data-onpaste'));
+                    })`
+                }} >
+                </script>
             </body>
         </html>;
     }

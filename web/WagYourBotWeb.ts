@@ -142,7 +142,7 @@ export class WagYourBotWeb {
             if (Object.keys(this.plugins).includes(req.params.pluginSlug) && adminGuilds?.filter(g => g.id == req.params.guildID).length) {
                 const plugin = <WebPlugin<any>>this.plugins[req.params.pluginSlug];
                 const pluginData = await plugin.get(req.params.guildID, this);
-                res.render<PluginProps>(`plugins/${plugin.fileName}/${plugin.fileName}Web`, {
+                res.render<PluginProps>(`plugins/${plugin.fileName}Web`, {
                     guildLength: await this.database.guildLength(),
                     pluginData: pluginData,
                     guildID: req.params.guildID,
@@ -189,7 +189,7 @@ export class WagYourBotWeb {
 export interface PluginData {
     aliases: PluginAliases,
     perms: PluginPerms,
-    roles: {[key: string]: {name: string, color: string, position: number}},
+    roles: {[key: string]: {name: string, color: string, position: number} | undefined},
     data: unknown
 }
 
@@ -210,7 +210,7 @@ export class WebPlugin<T> extends Plugin<T> {
         return data;
     }
 
-    async put(guildId: string, data: {[key: string]: string[]}, handler: WagYourBotWeb): Promise<void> {
+    async put(guildId: string, data: {[key: string]: string[] | undefined}, handler: WagYourBotWeb): Promise<void> {
         const guild = await handler.database.getGuild(guildId, handler.defaultPrefix);
         const roles = StandaloneDiscordAPI.getGuildRoles(guildId, <string>(guild.clientID ?? handler.clientId), handler);
         const rolesByName: {[roleid: string]: string} = {};
@@ -220,12 +220,13 @@ export class WebPlugin<T> extends Plugin<T> {
         const commands = Object.keys(data).filter(d => d.endsWith("aliases")).map(d => d.replace(".aliases", ""));
         const perms: PluginPerms = {};
         const aliases: PluginAliases = {};
-        for (const command of commands) {
-            aliases[command] = (<string[]>[]).concat(<string[]>(data[`${command}.aliases`])).map(d => d.replace(/\s/g, "")).filter(d => d != "");
-            perms[command] = (<string[]>[]).concat(<string[]>(data[`${command}.perms`])).map(d => rolesByName[d.replace('@', '')]).filter(d => d);
+        for (const command of this.commands) {
+            if (!commands.includes(command.name)) continue;
+            aliases[command.name] = [...(data[`${command.name}.aliases`] ?? [])].map(d => d.replace(/\s/g, "")).filter(d => d != "");
+            perms[command.name] = [...(data[`${command.name}.perms`] ?? [])].map(d => rolesByName[d.replace('@', '')]).filter(d => d) ?? [];
         }
-        handler.database.setGuildPluginAliases(guildId, "ChannelFilter", aliases);
-        handler.database.setGuildPluginPerms(guildId, "ChannelFilter", perms);
+        handler.database.setGuildPluginAliases(guildId, this.name, aliases);
+        handler.database.setGuildPluginPerms(guildId, this.name, perms);
     }
 }
 

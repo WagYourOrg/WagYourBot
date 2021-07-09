@@ -117,6 +117,7 @@ export class Plugin<T> {
                 }
                 return true;
             }
+            console.log(command.name, aliases[command.name], aliases);
             for (const alias of aliases[command.name] ?? command.aliases) {
                 if (content === alias || content.startsWith(alias + " ")) {
                     if (!guildID && !command.allowDM) command.noDM(message.channel);

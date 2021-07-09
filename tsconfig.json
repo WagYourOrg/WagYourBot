@@ -16,9 +16,7 @@
       "bot/plugins/*/**.ts",
         "web/**.ts",
         "web/views/**.tsx",
-        "web/views/plugins/null/**.ts",
-        "web/views/plugins/*/**.tsx",
-        "web/views/globals/**.tsx",
+        "web/views/*/**.tsx",
         "web/static/js/**.ts"
     ]
 }
