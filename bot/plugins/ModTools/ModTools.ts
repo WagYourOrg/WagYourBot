@@ -88,7 +88,7 @@ class Warn extends CommandTree<ModToolsData> {
 
     buildCommandTree(): void {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const user = await guild.members.fetch(args.user);
             if (user) {
                 const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -111,7 +111,7 @@ class Mute extends CommandTree<ModToolsData> {
 
     buildCommandTree() {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.fetch(args.user);
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -140,7 +140,7 @@ class UnMute extends CommandTree<ModToolsData> {
 
     buildCommandTree() {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.fetch(args.user);
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -169,7 +169,7 @@ class Kick extends CommandTree<ModToolsData> {
 
     buildCommandTree() {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.fetch(args.user);
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -193,7 +193,7 @@ class Ban extends CommandTree<ModToolsData> {
 
     buildCommandTree(): void {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.fetch(args.user);
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -207,7 +207,7 @@ class Ban extends CommandTree<ModToolsData> {
                     channel.send(new RichEmbed().setTitle("Ban").setDescription(`Failed to find user for \`${args.user}\``));
                 }
             }).or("prune_days", {type: TreeTypes.INTEGER})
-                .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const user = await guild.members.fetch(args.user);
                     if (user) {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -232,7 +232,7 @@ class UnBan extends CommandTree<ModToolsData> {
 
     buildCommandTree() {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/, argFilter: arg => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.unban(args.user, args.reason);
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -314,7 +314,7 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                             embed.setDescription(oldMsg.content);
                         }
                         const attachments = Array.from(oldMsg.attachments);
-                        console.log(attachments)
+                        // console.log(attachments)
                         if (attachments.length) embed.addField("Attachments: ", attachments.map(e => `[${e[1].name}](${e[1].proxyURL}`).join("\n"));
                         (<TextChannel>channel).send(embed);
                     }

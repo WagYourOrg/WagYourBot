@@ -1,6 +1,6 @@
 import { Message, PartialMessage } from "discord.js";
 import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
-import {ChannelFilterData} from "./ChannelFiltercommon";
+import {ChannelFilterData, CompiledChannelFilterData} from "./ChannelFiltercommon";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class ChannelFilter extends CommandTree<ChannelFilterData> {
@@ -155,19 +155,7 @@ class ChannelFilter extends CommandTree<ChannelFilterData> {
 }
 
 class ChannelFilterPlugin extends WebPlugin<ChannelFilterData> {
-    readonly compiledFilters: { [key: string]: {
-        channels: { 
-            [key: string]: {
-                filters: RegExp[],
-                attachments: boolean;
-            }
-        }
-        global: {
-            filters: RegExp[],
-            attachments: boolean;
-        }
-    } | undefined
-    } = {};
+    readonly compiledFilters: { [key: string]: CompiledChannelFilterData | undefined } = {};
     
     constructor(name: string | undefined, description: string | undefined, defaultData: ChannelFilterData) {
         super(name, description, defaultData);
@@ -187,18 +175,7 @@ class ChannelFilterPlugin extends WebPlugin<ChannelFilterData> {
 
     //TODO: threadsafe?
     compileGuildFilters(guildid: string, pluginData: ChannelFilterData) {
-        const compiledData: {
-            channels: { 
-                [key: string]: {
-                    filters: RegExp[],
-                    attachments: boolean;
-                }
-            }
-            global: {
-                filters: RegExp[],
-                attachments: boolean;
-            }
-        } = {channels: {}, global: {filters: [], attachments: pluginData.global.attachments}};
+        const compiledData: CompiledChannelFilterData = {channels: {}, global: {filters: [], attachments: pluginData.global.attachments}};
         for (const filter of pluginData.global.filters) {
             compiledData.global.filters.push(new RegExp(filter, "gi"));
         }
@@ -210,7 +187,7 @@ class ChannelFilterPlugin extends WebPlugin<ChannelFilterData> {
         }
         this.compiledFilters[guildid] = compiledData;
     }
-    
+
     async onMessage(message: PartialMessage | Message, handler: Handler) {
         if (message.guild) {
             if (!this.compiledFilters[message.guild.id]) this.compileGuildFilters(message.guild.id, await handler.database.getGuildPluginData(message.guild.id, this.name, this.data));

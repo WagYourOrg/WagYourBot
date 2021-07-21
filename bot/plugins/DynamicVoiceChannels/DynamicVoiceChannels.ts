@@ -41,7 +41,7 @@ class DVCSetName extends CommandTree<DVCData> {
     }
 
     buildCommandTree(): void {
-        this.then("name", {type: /.+/, argFilter: (arg) => <string>arg[0]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+        this.then("name", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
             if (data.id && data.id === member.voice.channel?.parent?.id) {
                 member.voice.channel.setName(args.name);

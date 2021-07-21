@@ -109,22 +109,22 @@ export class Plugin<T> {
         const { aliases, perms } = guildID ? await handler.database.getGuildPluginAliasesAndPerms(guildID, this.name, this.aliases, this.perms) : this;
         for (const command of this.commands) {
             if (content === command.name || content.startsWith(command.name + " ")) {
-                if (!guildID && !command.allowDM) command.noDM(message.channel);
+                if (!guildID && !command.allowDM) command.noDM(message);
                 if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                     await command.message(content.substring(command.name.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
                 } else {
-                    command.noPerms(message.channel);
+                    command.noPerms(message);
                 }
                 return true;
             }
-            console.log(command.name, aliases[command.name], aliases);
+            // console.log(command.name, aliases[command.name], aliases);
             for (const alias of aliases[command.name] ?? command.aliases) {
                 if (content === alias || content.startsWith(alias + " ")) {
-                    if (!guildID && !command.allowDM) command.noDM(message.channel);
+                    if (!guildID && !command.allowDM) command.noDM(message);
                     if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                         await command.message(content.substring(alias.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
                     } else {
-                        command.noPerms(message.channel);
+                        command.noPerms(message);
                     }
                     return true;
                 }
@@ -188,16 +188,16 @@ export abstract class Command<T> {
         channel.send(reply);
     }
 
-    async noDM(channel: TextChannel | DMChannel | NewsChannel) {
-        return this.sendError("Command Not Allowed In DM!", channel);
+    async noDM(message: Message) {
+        return this.sendError("Command Not Allowed In DM!", message);
     }
 
-    async noPerms(channel: TextChannel | DMChannel | NewsChannel) {
-        return this.sendError("You Do Not Have Permission To Run This Command!", channel);
+    async noPerms(message: Message) {
+        return this.sendError("You Do Not Have Permission To Run This Command!", message);
     }
 
-    async sendError(error: string, channel: TextChannel | DMChannel | NewsChannel): Promise<Message> {
-        return await channel.send(new RichEmbed()
+    async sendError(error: string, message: { channel: TextChannel | DMChannel | NewsChannel }): Promise<Message> {
+        return await message.channel.send(new RichEmbed()
             .setTitle(this.name)
             .setColor(0xFF0000)
             .setDescription(error)
@@ -237,6 +237,7 @@ interface CommandPart {
     readonly name: string;
     type: TreeTypes,
     readonly match?: RegExp;
+    lookahead: boolean
     eval?: CommandEval<any>;
     filter?: ArgFilter<any>,
     next?: CommandPart[];
@@ -252,8 +253,8 @@ interface UsagePart {
 type CommandEval<T> = (args: T, remainingContent: string, member: GuildMember, guild: Guild, channel: TextChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 type DMCommandEval<T> = (args: T, remainingContent: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler) => Promise<void>;
 type ArgFilter<T> = (arg: (string | undefined)[], message: Message) => T;
-type TreeOptions<U> = {allowDM?: boolean, type?:TreeTypes, argFilter?: ArgFilter<U>} | 
-    {allowDM?: boolean, type: RegExp, argFilter: ArgFilter<U>};
+type TreeOptions<U> = {allowDM?: boolean, type?:TreeTypes} |
+    {allowDM?: boolean, type: RegExp, lookahead?: boolean, argFilter?: ArgFilter<U>};
 
 
 //this might become more useful for compiling actual slash command structures later...
@@ -266,7 +267,7 @@ export enum TreeTypes {
  * @param V prev type
  * @param W prev params
  */
-interface Tree<T = {}, V extends Tree<W, any, any> | null = null, W = {}> {
+export interface Tree<T = {}, V extends Tree<W, any, any> | null = null, W = {}> {
     then<U, A>(name: string & keyof U, options: {allowDM: true} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: DMCommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W>, T>;
     then<U, A>(name: string & keyof U, options: {allowDM?: false} & {argFilter: ArgFilter<A>} & TreeOptions<A>, exec?: CommandEval<{[key in keyof U]: A} & T>): Tree<{[key in keyof U]: A} & T, Tree<T, V, W>, T>;
 
@@ -292,14 +293,14 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
     protected constructor(name="", aliases: string[]=[], description="", everyoneDefault=false, allowDM=false) {
         super(name, aliases, "", description, everyoneDefault, allowDM);
         
-        this.head = {name: name, match: undefined, type: TreeTypes.OTHER, eval: undefined, next: undefined, allowDM: this.allowDM};
+        this.head = {name: name, match: undefined, type: TreeTypes.OTHER, eval: undefined, lookahead: false, next: undefined, allowDM: this.allowDM};
         this.current = this.head;
         this.buildCommandTree();
-        this.head.next?.unshift({name: "help", type: TreeTypes.SUB_COMMAND, eval: async (args, remainingContent, member, guild, channel, message, handler) => this.selfHelp(channel, guild, handler), allowDM: true});
+        this.head.next?.unshift({name: "help", type: TreeTypes.SUB_COMMAND, lookahead: false, eval: async (args, remainingContent, member, guild, channel, message, handler) => this.selfHelp(channel, guild, handler), allowDM: true});
 
         if (this.head.next === undefined && this.head.eval === undefined) throw new Error(`no branches on "head" for command "${name}"`);
         //cast to remove readonly
-        (<{usage: string}>this).usage = CommandTree.compileUsage(this.genUsage(this.head));
+        (<{usage: string}>this).usage = CommandTree.compileUsage(this.genUsage(this.head)).join("\n");
     }
 
     abstract buildCommandTree(): void;
@@ -308,7 +309,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
         this.head.eval = evalContent;
     }
 
-    private static compileUsage(part: UsagePart): string {
+    private static compileUsage(part: UsagePart): string[] {
         const matches = [];
         const notMatches = [];
         for (const arg of part.current) {
@@ -334,7 +335,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                 nexts.push(" " + next);
             }
         }
-        return current + nexts.join("\n" + current);
+        return nexts.map(e => current + e);
     }
 
     private genUsage(current: CommandPart): UsagePart {
@@ -353,7 +354,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                     }
                 }
             }
-            const next: (string|null)[] = parts.map(CommandTree.compileUsage);
+            const next: (string|null)[] = parts.map(CommandTree.compileUsage).flat();
             if (current.eval !== undefined) next.push(null);
             return {current: [{name: current.name, isMatch: !!current.match}], next: next};
         } else {
@@ -376,9 +377,11 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
         }
         let type: TreeTypes;
         let compiledType: RegExp | undefined;
+        let argFilter: ArgFilter<any> | undefined;
         if (options.type instanceof RegExp) {
             compiledType = options.type;
             type = TreeTypes.OTHER;
+            argFilter = (<{argFilter?: ArgFilter<any>}>options).argFilter;
         } else {
             switch(<TreeTypes>options.type) {
                 case TreeTypes.STRING:
@@ -391,19 +394,19 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                     compiledType = /true\b|false\b/i;
                     break;
                 case TreeTypes.USER:
-                    compiledType = /[^\d]*?(\d+)[^\s]*/;
+                    compiledType = /[^\d]*?(\d+)/;
                     //force cast here, it doesn't matter in the internals because it's correct by now.
-                    options.argFilter = <ArgFilter<any>>((arg) => arg[1]);
+                    argFilter = <ArgFilter<any>>((arg) => arg[1]);
                     break;
                 case TreeTypes.CHANNEL:
-                    compiledType = /[^\d]*?(\d+)[^\s]*/;
+                    compiledType = /[^\d]*?(\d+)/;
                     //force cast here, it doesn't matter in the internals because it's correct by now.
-                    options.argFilter = <ArgFilter<any>>((arg) => arg[1]);
+                    argFilter = <ArgFilter<any>>((arg) => arg[1]);
                     break;
                 case TreeTypes.ROLE:
-                    compiledType = /[^\d]*?(\d+)[^\s]*|(@everyone)\b/;
+                    compiledType = /[^\d]*?(\d+)(@everyone)\b/;
                     //force cast here, it doesn't matter in the internals because it's correct by now.
-                    options.argFilter = <ArgFilter<any>>((arg) => arg[1] ? arg[1] : arg[2]);
+                    argFilter = <ArgFilter<any>>((arg) => arg[1] ? arg[1] : arg[2]);
                     break;
                 case TreeTypes.SUB_COMMAND:
             }
@@ -413,9 +416,10 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
         //force cast here, it doesn't matter in the internals because it's correct by now.
         const nextCurrent: CommandPart = {
             name: name,
-            match: compiledType,
+            match: compiledType ? new RegExp(compiledType?.source + "[^\\s]*", compiledType?.flags) : undefined,
             type: type,
-            filter: options.argFilter,
+            lookahead: !!(<{lookahead?: boolean}>options)?.lookahead,
+            filter: argFilter,
             eval: exec,
             next: undefined,
             allowDM: !!(<{allowDM: boolean | undefined}>options).allowDM
@@ -446,7 +450,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                 if (nextPart.match === undefined) {
                     if (remainingContent.startsWith(nextPart.name + " ") || remainingContent === nextPart.name) {
                         if (!guild && !nextPart.allowDM) {
-                            this.noDM(channel);
+                            this.noDM(message);
                             return;
                         }
                         if (nextPart.filter) {
@@ -461,19 +465,20 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                     const match = remainingContent.match(nextPart.match);
                     if (match) {
                         if (!guild && !nextPart.allowDM) {
-                            this.noDM(channel);
+                            this.noDM(message);
                             return;
                         }
                         const argFilter: ArgFilter<any> = nextPart.filter ?? (arg => arg[0]);
                         prevArgs.push([nextPart, argFilter(<string[]>match, message)])
-                        this.evalTree(nextPart, prevArgs, remainingContent.substring(match[0].length).trim(), member, guild, channel, message, handler);
+                        let lookAhead = nextPart.lookahead ? match[match.length - 1]?.length ?? 0 : 0;
+                        this.evalTree(nextPart, prevArgs, remainingContent.substring(match[0].length - lookAhead).trim(), member, guild, channel, message, handler);
                         return;
                     }
                 }
             }
         }
         if (current.eval === undefined) {
-            this.sendError(`Incomplete command \`${this.name} ${prevArgs.map(e => e[0].name).join(" ")}\`, expected next part \`${current.next?.map(e => e.name).join("|")}\``, channel);
+            this.sendError(`Incomplete command \`${this.name} ${prevArgs.map(e => e[0].name).join(" ")}\`, expected next part \`${current.next?.map(e => e.name).join("|")}\``, message);
             return;
         }
         const args: {[name: string]: string | undefined} = {};
