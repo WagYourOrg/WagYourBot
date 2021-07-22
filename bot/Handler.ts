@@ -12,7 +12,7 @@ export abstract class Handler extends BaseClient {
     readonly clientID;
 
     protected constructor(clientID: string) {
-        super();
+        super({ partials: [ "REACTION", "MESSAGE", "USER" ] });
         this.clientID = clientID;
         this.registerPlugins();
         this.database = new SQLDatabase(this.plugins.map(e => e.name), clientID);
