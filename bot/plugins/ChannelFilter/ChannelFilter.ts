@@ -181,7 +181,7 @@ class ChannelFilterPlugin extends WebPlugin<ChannelFilterData> {
         }
         for (const [key, channel] of Object.entries(pluginData.channels)) {
             compiledData.channels[key] = {filters: [], attachments: <boolean>channel?.attachments};
-            for (const filter of <string[]>channel?.filters) {
+            for (const filter of channel?.filters ?? []) {
                 compiledData.channels[key].filters.push(new RegExp(filter, "gi"));
             }
         }
