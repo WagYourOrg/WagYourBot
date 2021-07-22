@@ -404,7 +404,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                     argFilter = <ArgFilter<any>>((arg) => arg[1]);
                     break;
                 case TreeTypes.ROLE:
-                    compiledType = /[^\d]*?(\d+)(@everyone)\b/;
+                    compiledType = /(?:[^\d]*?(\d+)|(@?everyone)\b)/;
                     //force cast here, it doesn't matter in the internals because it's correct by now.
                     argFilter = <ArgFilter<any>>((arg) => arg[1] ? arg[1] : arg[2]);
                     break;
