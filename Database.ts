@@ -120,6 +120,12 @@ export class SQLDatabase implements Database {
                 conn.query(`UPDATE Plugin${plugin} SET Aliases=? WHERE GuildID=?`, [defaultPluginAliases, guildID]);
                 res[0].aliases = JSON.parse(JSON.stringify(defaultPluginAliases));
             }
+            if (typeof res[0].perms === "string") {
+                res[0].perms = JSON.parse(res[0].perms);
+            }
+            if (typeof res[0].aliases === "string") {
+                res[0].aliases = JSON.parse(res[0].aliases);
+            }
             return <{aliases: T, perms: U}>res[0];
         } finally {
             conn.release();
