@@ -264,7 +264,7 @@ class MemberRankPlugin extends WebPlugin<MemberRankData> {
 
     async onMessage(msg: Message, client: Handler) {
         if (msg.guild) {
-            const time = (msg.createdTimestamp - (await client.database.getGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id))) / 1000;
+            const time = (msg.createdTimestamp - await client.database.getGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id)) / 1000;
             if (time > 30) {
                 await client.database.guildMemberAddEXP(msg.guild.id, "MemberRank", msg.author.id, getPoints(time));
                 client.database.setGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id, msg.createdTimestamp);

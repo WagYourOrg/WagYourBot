@@ -17,7 +17,7 @@ export class SQLDatabase implements Database {
         try {
             await conn.query("CREATE TABLE IF NOT EXISTS Secrets(ClientID BigInt PRIMARY KEY, Token TINYTEXT, Secret TINYTEXT);");
             await conn.query("CREATE TABLE IF NOT EXISTS Guilds(GuildID BigInt PRIMARY KEY, Plugins JSON, Prefix TINYTEXT, ClientID BigInt);");
-            await conn.query("CREATE TABLE IF NOT EXISTS MemberRank(MidGid VARCHAR(255) PRIMARY KEY, MemberID BIGINT, GuildID BIGINT, Score INT, LastMsg INT, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID));");
+            await conn.query("CREATE TABLE IF NOT EXISTS MemberRank(MidGid VARCHAR(255) PRIMARY KEY, MemberID BIGINT, GuildID BigInt, Score INT, LastMsg BIGINT, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID));");
             for (const plugin of plugins) {
                 await conn.query(`CREATE TABLE IF NOT EXISTS Plugin${plugin}(GuildID BIGINT PRIMARY KEY, Aliases JSON, Perms JSON, Data JSON, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID))`);
             }
@@ -245,9 +245,9 @@ export class SQLDatabase implements Database {
     async getGuildMemberLastMessageTime(guildID: string, plugin: string, member: string): Promise<number> {
         const conn = await this.mdb.getConnection();
         try {
-            const res = (<{LastMsg: number}[]>await conn.query("SELECT LastMsg FROM MemberRank WHERE MidGid=?", [`${member}:${guildID}`])).map(e => e.LastMsg);
+            const res = (<{LastMsg: BigInt}[]>await conn.query("SELECT LastMsg FROM MemberRank WHERE MidGid=?", [`${member}:${guildID}`])).map(e => e.LastMsg);
             if (!res.length) return 0;
-            return res[0];
+            return parseInt(res[0].toString());
         } finally {
             conn.release();
         }
