@@ -4,11 +4,12 @@ import {Database, PluginAliases, PluginPerms, PluginSlug} from "./Structures";
 export class SQLDatabase implements Database {
     readonly mdb = createPool({host: "127.0.0.1", user: "wagyourbot", password: "123456", connectionLimit: 5, database: "WagYourBot", supportBigInt: true});
     readonly clientID: string | undefined;
-    ready: boolean = false;
+    onReady: () => void;
 
-    constructor(plugins: PluginSlug[], clientID?: string) {
+    constructor(plugins: PluginSlug[], clientID?: string, onReady?: () => void) {
         this.clientID = clientID;
         this.setup(plugins).catch(e => {throw e});
+        this.onReady = onReady ?? (() => {});
     }
 
     private async setup(plugins: PluginSlug[]) {
@@ -22,7 +23,7 @@ export class SQLDatabase implements Database {
             }
         } finally {
             await conn.release();
-            this.ready = true;
+            this.onReady();
         }
     }
  
