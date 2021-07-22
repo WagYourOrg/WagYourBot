@@ -226,6 +226,7 @@ const newDB = new SQLDatabase([...pluginMap.values()].map(e => e.name), undefine
         const guilds = await oldDB.getGuilds();
 
         for (const guild of guilds) {
+            console.log(guild);
             const guildData = await oldDB.getGuild(guild, "!!");
 
             //remap plugin names
@@ -254,6 +255,7 @@ const newDB = new SQLDatabase([...pluginMap.values()].map(e => e.name), undefine
                 }
             }
         }
+        console.log("done");
     })()
 
 });
