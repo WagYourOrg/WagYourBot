@@ -64,9 +64,9 @@ class MuteRole extends CommandTree<ModToolsData> {
             const role = await guild.roles.fetch(args.role);
             if (role) {
                 const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
-                data.logChannel = role.id;
+                data.muteRole = role.id;
                 await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                channel.send(new RichEmbed().setTitle("Log Channel").setDescription(`Log Channel set to ${role}.`));
+                channel.send(new RichEmbed().setTitle("Log Channel").setDescription(`Mute role set to ${role}.`));
                 this.updateMuteRole(guild, role);
             } else {
                 channel.send(new RichEmbed().setTitle("Mute Role").setDescription(`Role \`${args.role}\` not found!`));
