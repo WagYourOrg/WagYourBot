@@ -58,11 +58,11 @@ class Permissions extends CommandTree<DefaultData> {
                     for (const command of plugin.commands) {
                         const roles: string[] = [];
                         for (const role of perms[command.name] ?? command.perms) {
-                            if (role === "@everyone") {
-                                roles.push(role);
+                            if (role === "@everyone" || role === "everyone") {
+                                roles.push("@everyone");
                                 continue;
                             }
-                            let roleResolve = guild.roles.resolve(role);
+                            let roleResolve = await guild.roles.fetch(role);
                             if (roleResolve) roles.push(roleResolve.toString());
                         }
                         commands.push(`**${command.name}:** ${roles.length ? roles.join(' ') : "none"}`);
@@ -85,16 +85,17 @@ class Permissions extends CommandTree<DefaultData> {
                                 if (command.name === args.command) {
                                     reply.setDescription(command.name);
                                     const {perms} = await handler.database.getGuildPluginAliasesAndPerms(<string>guild.id, plugin.name, plugin.aliases, plugin.perms);
-                                    if (args.role !== '@everyone' && guild.roles.cache.has(<string>args.role) && args.role !== guild.id && !perms[<string>args.role]?.includes(args.role)) {
+                                    let role = await guild.roles.fetch(<string>args.role);
+                                    if (args.role !== '@everyone' && role && args.role !== guild.id && !perms[<string>args.role]?.includes(args.role)) {
                                         perms[command.name] = (perms[command.name] ?? command.perms).concat(args.role);
                                         handler.database.setGuildPluginPerms(guild.id, plugin.name, perms);
-                                        reply.addField("Success", `Sucessfully added ${args.role} to **${command.name}**.`);
+                                        reply.addField("Success", `Sucessfully added ${role} to **${command.name}**.`);
                                     } else if (args.role === '@everyone' || args.role === "everyone" || (args.role === guild.id)) {
                                         perms[command.name] = (perms[command.name] ?? command.perms).concat(["@everyone"]);
                                         handler.database.setGuildPluginPerms(<string>guild.id, plugin.name, perms);
                                         reply.addField("Success", `Sucessfully added @everyone to **${command.name}**.`);
                                     } else {
-                                        reply.addField("Fail", `role (\`${args.role}\` did not parse, or is already there.`);
+                                        reply.addField("Fail", `role \`${args.role}\` did not parse, or is already there.`);
                                     }
                                     fail = false;
                                 }
