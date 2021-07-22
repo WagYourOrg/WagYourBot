@@ -233,6 +233,12 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                             if (data.roles[reaction.emoji.identifier]) {
                                 const member = guild.members.resolve(user.id);
                                 member?.roles.add(<string>data.roles[reaction.emoji.identifier]);
+                            } else if (reaction.emoji.id && data.roles[reaction.emoji.id]) {
+                                const member = guild.members.resolve(user.id);
+                                member?.roles.add(<string>data.roles[reaction.emoji.id]);
+                                data.roles[reaction.emoji.identifier] = data.roles[reaction.emoji.id];
+                                data.roles[reaction.emoji.id] = undefined;
+                                handler.database.setGuildPluginData(guild.id, this.name, data);
                             }
                         }
                     }
@@ -252,6 +258,12 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                             if (data.roles[reaction.emoji.identifier]) {
                                 const member = guild.members.resolve(user.id);
                                 member?.roles.remove(<string>data.roles[reaction.emoji.identifier]);
+                            } else if (reaction.emoji.id && data.roles[reaction.emoji.id]) {
+                                const member = guild.members.resolve(user.id);
+                                member?.roles.remove(<string>data.roles[reaction.emoji.id]);
+                                data.roles[reaction.emoji.identifier] = data.roles[reaction.emoji.id];
+                                data.roles[reaction.emoji.id] = undefined;
+                                handler.database.setGuildPluginData(guild.id, this.name, data);
                             }
                         }
                     }
