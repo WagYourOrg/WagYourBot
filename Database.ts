@@ -4,6 +4,7 @@ import {Database, PluginAliases, PluginPerms, PluginSlug} from "./Structures";
 export class SQLDatabase implements Database {
     readonly mdb = createPool({host: "127.0.0.1", user: "wagyourbot", password: "123456", connectionLimit: 5, database: "WagYourBot", supportBigInt: true});
     readonly clientID: string | undefined;
+    ready: boolean = false;
 
     constructor(plugins: PluginSlug[], clientID?: string) {
         this.clientID = clientID;
@@ -13,14 +14,15 @@ export class SQLDatabase implements Database {
     private async setup(plugins: PluginSlug[]) {
         const conn = await this.mdb.getConnection();
         try {
-            conn.query("CREATE TABLE IF NOT EXISTS Secrets(ClientID BigInt PRIMARY KEY, Token TINYTEXT, Secret TINYTEXT);");
-            conn.query("CREATE TABLE IF NOT EXISTS Guilds(GuildID BigInt PRIMARY KEY, Plugins JSON, Prefix TINYTEXT, ClientID BigInt);");
-            conn.query("CREATE TABLE IF NOT EXISTS MemberRank(MidGid VARCHAR(255) PRIMARY KEY, MemberID BIGINT, GuildID BIGINT, Score INT, LastMsg INT, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID));");
+            await conn.query("CREATE TABLE IF NOT EXISTS Secrets(ClientID BigInt PRIMARY KEY, Token TINYTEXT, Secret TINYTEXT);");
+            await conn.query("CREATE TABLE IF NOT EXISTS Guilds(GuildID BigInt PRIMARY KEY, Plugins JSON, Prefix TINYTEXT, ClientID BigInt);");
+            await conn.query("CREATE TABLE IF NOT EXISTS MemberRank(MidGid VARCHAR(255) PRIMARY KEY, MemberID BIGINT, GuildID BIGINT, Score INT, LastMsg INT, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID));");
             for (const plugin of plugins) {
-                conn.query(`CREATE TABLE IF NOT EXISTS Plugin${plugin}(GuildID BIGINT PRIMARY KEY, Aliases JSON, Perms JSON, Data JSON, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID))`);
+                await conn.query(`CREATE TABLE IF NOT EXISTS Plugin${plugin}(GuildID BIGINT PRIMARY KEY, Aliases JSON, Perms JSON, Data JSON, FOREIGN KEY(GuildID) REFERENCES Guilds(GuildID))`);
             }
         } finally {
-            conn.release();
+            await conn.release();
+            this.ready = true;
         }
     }
  

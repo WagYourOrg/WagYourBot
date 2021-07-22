@@ -31,6 +31,7 @@ const pluginMap = new Map<string, Plugin<any>>([
 
 const oldDB = new OldDatabase();
 const newDB = new SQLDatabase([...pluginMap.values()].map(e => e.name));
+while (!newDB.ready) {};
 
 const MapPluginPerms: {[plname: string]: (oldData: {[key: string]: string[] | undefined }) => {[key: string]: string[]}} = {
     AdvancedInfo: (oldData) => {
