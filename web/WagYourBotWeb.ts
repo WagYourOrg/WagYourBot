@@ -67,7 +67,7 @@ export class WagYourBotWeb {
             passport.use(new Strategy({
                 clientID: this.clientId,
                 clientSecret: secret,
-                callbackURL: 'http://localhost:5000/callback',
+                callbackURL: 'https://bot.wagyourtail.xyz/callback',
                 scope: ['identify', 'email', 'guilds']
             }, (accessToken, refreshToken, profile, done) => {
                 process.nextTick(() => {
