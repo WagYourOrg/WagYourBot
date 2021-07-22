@@ -185,11 +185,11 @@ class MessageAction extends CommandTree<MessageActionsData> {
         }
         if (data.types & MessageActionTypes.Give_Role) {
             //@ts-ignore
-            embed.addField("Give Role", `<@${data.data.give}>`);
+            embed.addField("Give Role", `<@&${data.data.give}>`);
         }
         if (data.types & MessageActionTypes.Take_Role) {
             //@ts-ignore
-            embed.addField("Take Role", `<@${data.data.take}>`);
+            embed.addField("Take Role", `<@&${data.data.take}>`);
         }
         if (data.types & MessageActionTypes.Respond) {
             embed.addField("Response", `response data not rendered`);
