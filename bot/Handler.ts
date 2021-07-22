@@ -170,7 +170,7 @@ export abstract class Command<T> {
         if (thumbnail) reply.setThumbnail(thumbnail);
         if (guild?.id) {
             const { aliases, perms } = await handler.database.getGuildPluginAliasesAndPerms(guild.id, this.plugin.name, this.plugin.aliases, this.plugin.perms);
-            if (aliases.length) reply.addField("Aliases", (aliases[this.name] ?? this.aliases).join(", "));
+            if (aliases[this.name]?.length) reply.addField("Aliases", (aliases[this.name] ?? this.aliases).join(", "));
             const roles = [];
             for (const role of perms[this.name] ?? this.perms) {
                 if (role === "@everyone") {
@@ -182,8 +182,12 @@ export abstract class Command<T> {
             }
             if (roles.length) reply.addField("Perms", roles.join(", "));
         } else {
-            reply.addField("Default Aliases", this.aliases.join(", "));
-            reply.addField("Default Perms", this.perms.join(", "));
+            if (this.aliases.length) {
+                reply.addField("Default Aliases", this.aliases.join(", "));
+            }
+            if (this.perms.length) {
+                reply.addField("Default Perms", this.perms.join(", "));
+            }
         }
         channel.send(reply);
     }
@@ -404,7 +408,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
                     argFilter = <ArgFilter<any>>((arg) => arg[1]);
                     break;
                 case TreeTypes.ROLE:
-                    compiledType = /(?:[^\d]*?(\d+)|(@?everyone)\b)/;
+                    compiledType = /[^\d]*?(\d+)[^\s]*|(@?everyone)\b/;
                     //force cast here, it doesn't matter in the internals because it's correct by now.
                     argFilter = <ArgFilter<any>>((arg) => arg[1] ? arg[1] : arg[2]);
                     break;
