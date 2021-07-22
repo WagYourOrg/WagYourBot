@@ -339,6 +339,7 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
 
 export const plugin = new ModToolsPlugin("ModTools", "Moderator commands and stuff", {muteRole: undefined, logChannel: undefined, logChanges: false});
 plugin.addCommand(new LogChannel());
+plugin.addCommand(new LogMessageEdits());
 plugin.addCommand(new MuteRole());
 plugin.addCommand(new Warn());
 plugin.addCommand(new Mute());
