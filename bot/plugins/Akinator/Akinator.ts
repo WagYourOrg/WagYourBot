@@ -1,5 +1,6 @@
 import { GuildMember, User, Guild, TextChannel, DMChannel, NewsChannel, Message, MessageReaction } from "discord.js";
 import { Command, Handler, Plugin, RichEmbed } from "../../Handler";
+// @ts-ignore
 import { Aki } from "aki-api.ts";
 import {AkinatorData} from "./Akinatorcommon";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
