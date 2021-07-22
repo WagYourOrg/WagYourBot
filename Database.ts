@@ -218,7 +218,7 @@ export class SQLDatabase implements Database {
     async getUserCount(guildID: string, plugin: string): Promise<number> {
         const conn = await this.mdb.getConnection();
         try {
-            return (<{Count: number}[]>await conn.query("SELECT COUNT(*) as Count FROM MemberRank WHERE GuildID=?", [guildID])).map(e => e.Count)[0];
+            return parseInt((<{Count: BigInt}[]>await conn.query("SELECT COUNT(*) as Count FROM MemberRank WHERE GuildID=?", [guildID])).map(e => e.Count)[0].toString());
         } finally {
             conn.release();
         }
