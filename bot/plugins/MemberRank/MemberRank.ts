@@ -263,18 +263,22 @@ class MemberRankPlugin extends WebPlugin<MemberRankData> {
 
 
     async onMessage(msg: Message, client: Handler) {
-        if (msg.guild) {
-            const time = (msg.createdTimestamp - await client.database.getGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id)) / 1000;
-            if (time > 30) {
-                await client.database.guildMemberAddEXP(msg.guild.id, "MemberRank", msg.author.id, getPoints(time));
-                client.database.setGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id, msg.createdTimestamp);
-                const rank = await this.updateMember(<GuildMember>msg.member, msg.guild, client);
+        try {
+            if (msg.guild) {
+                const time = (msg.createdTimestamp - await client.database.getGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id)) / 1000;
+                if (time > 30) {
+                    await client.database.guildMemberAddEXP(msg.guild.id, "MemberRank", msg.author.id, getPoints(time));
+                    client.database.setGuildMemberLastMessageTime(msg.guild.id, "MemberRank", msg.author.id, msg.createdTimestamp);
+                    const rank = await this.updateMember(<GuildMember>msg.member, msg.guild, client);
 
-                const memberID = (await client.database.getRanks(<string>msg.guild?.id, "MemberRank", rank, 1))[0];
-                const member = await msg.guild?.members.fetch(memberID.member);
-                if (member) this.updateMember(member, msg.guild, client);
-                else if (memberID) client.database.deleteUser(<string>msg.guild?.id, "MemberRank", memberID.member);
+                    const memberID = (await client.database.getRanks(<string>msg.guild?.id, "MemberRank", rank, 1))[0];
+                    const member = await msg.guild?.members.fetch(memberID.member);
+                    if (member) this.updateMember(member, msg.guild, client);
+                    else if (memberID) client.database.deleteUser(<string>msg.guild?.id, "MemberRank", memberID.member);
+                }
             }
+        } catch (e) {
+            console.error(e);
         }
     }
 }

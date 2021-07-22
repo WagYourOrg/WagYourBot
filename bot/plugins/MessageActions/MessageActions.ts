@@ -565,17 +565,21 @@ class MessageActionsPlugin extends WebPlugin<MessageActionsData> {
     }
 
     async onMessage(message: Message, handler: Handler): Promise<void> {
-        if (message.guild) {
-            if (!this.compiled_guild_data[message.guild.id]) {
-                const data = await handler.database.getGuildPluginData(message.guild.id, this.name, this.data);
-                this.compileGuildData(message.guild.id, data);
-            }
-            const guildData = <(MessageActionData & {compiledRegex: RegExp})[]>this.compiled_guild_data[message.guild.id];
-            for (const action of guildData) {
-                if (message.content.match(action.compiledRegex)) {
-                    MessageActionsPlugin.doAction(action, message);
+        try {
+            if (message.guild) {
+                if (!this.compiled_guild_data[message.guild.id]) {
+                    const data = await handler.database.getGuildPluginData(message.guild.id, this.name, this.data);
+                    this.compileGuildData(message.guild.id, data);
+                }
+                const guildData = <(MessageActionData & { compiledRegex: RegExp })[]>this.compiled_guild_data[message.guild.id];
+                for (const action of guildData) {
+                    if (message.content.match(action.compiledRegex)) {
+                        MessageActionsPlugin.doAction(action, message);
+                    }
                 }
             }
+        } catch (e) {
+            console.error(e);
         }
     }
 }

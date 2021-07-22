@@ -28,18 +28,22 @@ class StreamingRolePlugin extends WebPlugin<StreamingRoleData> {
     }
 
     async onPresence(oldP: Presence | undefined, newP: Presence | undefined, handler: Handler) {
-        const guild: Guild = <Guild>oldP?.guild ?? newP?.guild;
-        const {enabled} = await handler.database.getGuild(guild.id, handler.defaultPrefix);
-        if (enabled.includes(this.name)) {
-            const data = await handler.database.getGuildPluginData(guild.id, this.name, this.data);
-            const role = await guild.roles.fetch(<string>data.roleid);
-            if (role) {
-                if (newP?.activities?.filter((e: Activity) => e.type === "STREAMING").length) {
-                    newP.member?.roles.add(role, "Streaming");
-                } else if (oldP?.activities?.filter((e: Activity) => e.type === "STREAMING").length) {
-                    oldP.member?.roles.remove(role, "Done Streaming");
+        try {
+            const guild: Guild = <Guild>oldP?.guild ?? newP?.guild;
+            const {enabled} = await handler.database.getGuild(guild.id, handler.defaultPrefix);
+            if (enabled.includes(this.name)) {
+                const data = await handler.database.getGuildPluginData(guild.id, this.name, this.data);
+                const role = await guild.roles.fetch(<string>data.roleid);
+                if (role) {
+                    if (newP?.activities?.filter((e: Activity) => e.type === "STREAMING").length) {
+                        newP.member?.roles.add(role, "Streaming");
+                    } else if (oldP?.activities?.filter((e: Activity) => e.type === "STREAMING").length) {
+                        oldP.member?.roles.remove(role, "Done Streaming");
+                    }
                 }
             }
+        } catch (e) {
+            console.error(e);
         }
     }
 

@@ -189,20 +189,24 @@ class ChannelFilterPlugin extends WebPlugin<ChannelFilterData> {
     }
 
     async onMessage(message: PartialMessage | Message, handler: Handler) {
-        if (message.guild) {
-            if (!this.compiledFilters[message.guild.id]) this.compileGuildFilters(message.guild.id, await handler.database.getGuildPluginData(message.guild.id, this.name, this.data));
-            if (this.compiledFilters[message.guild.id]?.global.attachments || this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.attachments) {
-                if (message.attachments.size > 0) {
-                    message.delete();
-                    return;
+        try {
+            if (message.guild) {
+                if (!this.compiledFilters[message.guild.id]) this.compileGuildFilters(message.guild.id, await handler.database.getGuildPluginData(message.guild.id, this.name, this.data));
+                if (this.compiledFilters[message.guild.id]?.global.attachments || this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.attachments) {
+                    if (message.attachments.size > 0) {
+                        message.delete();
+                        return;
+                    }
+                }
+                for (const matcher of this.compiledFilters[message.guild.id]?.global.filters.concat(this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.filters ?? []) ?? []) {
+                    if (message.content?.match(matcher)) {
+                        message.delete();
+                        return;
+                    }
                 }
             }
-            for (const matcher of this.compiledFilters[message.guild.id]?.global.filters.concat(this.compiledFilters[message.guild.id]?.channels[message.channel.id]?.filters ?? []) ?? []) {
-                if (message.content?.match(matcher)) {
-                    message.delete();
-                    return;
-                }
-            }
+        } catch (e) {
+            console.error(e);
         }
     }
 }
