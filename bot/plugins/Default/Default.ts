@@ -89,12 +89,12 @@ class Permissions extends CommandTree<DefaultData> {
                                         perms[command.name] = (perms[command.name] ?? command.perms).concat(args.role);
                                         handler.database.setGuildPluginPerms(guild.id, plugin.name, perms);
                                         reply.addField("Success", `Sucessfully added ${args.role} to **${command.name}**.`);
-                                    } else if (args.role === '@everyone' || (args.role === guild.id)) {
+                                    } else if (args.role === '@everyone' || args.role === "everyone" || (args.role === guild.id)) {
                                         perms[command.name] = (perms[command.name] ?? command.perms).concat(["@everyone"]);
                                         handler.database.setGuildPluginPerms(<string>guild.id, plugin.name, perms);
                                         reply.addField("Success", `Sucessfully added @everyone to **${command.name}**.`);
                                     } else {
-                                        reply.addField("Fail", "**role** did not parse, or is already there.");
+                                        reply.addField("Fail", `role (\`${args.role}\` did not parse, or is already there.`);
                                     }
                                     fail = false;
                                 }
@@ -102,7 +102,7 @@ class Permissions extends CommandTree<DefaultData> {
                         }
                     }
                     if (fail) {
-                        reply.addField("Fail", "**command** did not parse.");
+                        reply.addField("Fail", `did not find command \`${args.command}\``);
                     }
                     channel.send(reply);
                 }).or()
