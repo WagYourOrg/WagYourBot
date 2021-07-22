@@ -162,6 +162,7 @@ const newDB = new SQLDatabase([...pluginMap.values()].map(e => e.name), undefine
                     globalFilters.push(val.regex);
                     globalAttachments = val.attachments;
                 } else {
+                    channelFilters[key] = {};
                     channelFilters[key].filters = val.regex;
                     channelFilters[key].attachments = val.attachments;
                 }
