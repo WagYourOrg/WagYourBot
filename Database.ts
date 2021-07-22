@@ -138,7 +138,11 @@ export class SQLDatabase implements Database {
                 conn.query(`UPDATE Plugin${plugin} SET Data=? WHERE GuildID=?`, [defaultData, guildID]);
                 return JSON.parse(JSON.stringify(defaultData));
             }
-            return res[0];
+            if (typeof res[0] === "string") {
+                return JSON.parse(res[0]);
+            } else {
+                return res[0];
+            }
         } finally {
             conn.release();
         }
