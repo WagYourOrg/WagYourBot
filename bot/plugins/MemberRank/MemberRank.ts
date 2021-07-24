@@ -272,7 +272,7 @@ class MemberRankPlugin extends WebPlugin<MemberRankData> {
                     const rank = await this.updateMember(<GuildMember>msg.member, msg.guild, client);
 
                     const memberID = (await client.database.getRanks(<string>msg.guild?.id, "MemberRank", rank, 1))[0];
-                    const member = await msg.guild?.members.fetch(memberID.member);
+                    const member = await msg.guild?.members.fetch(memberID.member).catch(() => null);
                     if (member) this.updateMember(member, msg.guild, client);
                     else if (memberID) client.database.deleteUser(<string>msg.guild?.id, "MemberRank", memberID.member);
                 }
