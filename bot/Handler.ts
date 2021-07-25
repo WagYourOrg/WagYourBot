@@ -416,11 +416,15 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
             }
             type = <TreeTypes>options.type;
         }
-        
+
+        if (!(<{lookahead?: boolean}>options)?.lookahead) {
+            compiledType = new RegExp(compiledType?.source + "[^\\s]*", compiledType?.flags);
+        }
+
         //force cast here, it doesn't matter in the internals because it's correct by now.
         const nextCurrent: CommandPart = {
             name: name,
-            match: compiledType ? new RegExp(compiledType?.source + "[^\\s]*", compiledType?.flags) : undefined,
+            match: compiledType,
             type: type,
             lookahead: !!(<{lookahead?: boolean}>options)?.lookahead,
             filter: argFilter,
