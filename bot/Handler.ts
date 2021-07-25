@@ -417,8 +417,8 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
             type = <TreeTypes>options.type;
         }
 
-        if (!(<{lookahead?: boolean}>options)?.lookahead) {
-            compiledType = new RegExp(compiledType?.source + "[^\\s]*", compiledType?.flags);
+        if (compiledType && !(<{lookahead?: boolean}>options)?.lookahead) {
+            compiledType = new RegExp(compiledType.source + "[^\\s]*", compiledType.flags);
         }
 
         //force cast here, it doesn't matter in the internals because it's correct by now.
@@ -486,7 +486,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
             }
         }
         if (current.eval === undefined) {
-            this.sendError(`Incomplete command \`${this.name} ${prevArgs.map(e => e[0].name).join(" ")}\`, expected next part \`${current.next?.map(e => e.name).join("|")}\``, message);
+            this.sendError(`Incomplete command \`${this.name} ${prevArgs.map(e => e[0].name).join(" ")}\`, expected next part \`${current.next?.map(e => e.name).join("|")}\`, not \`${remainingContent}\``, message);
             return;
         }
         const args: {[name: string]: string | undefined} = {};
