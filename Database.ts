@@ -239,13 +239,11 @@ export class SQLDatabase implements Database {
         }
     }
 
-    async getGuildMemberEXP(guildID: string, plugin: string, member: string): Promise<{ rank: number | false; score: number; }> {
+    async getGuildMemberEXP(guildID: string, plugin: string, member: string): Promise<{ rank: number; score: number; }> {
         const conn = await this.mdb.getConnection();
         try {
             const res = (<{Score: number, RowNo: bigint}[]>await conn.query("SELECT Score, RowNo FROM (SELECT MemberID, Score, ROW_NUMBER() OVER (ORDER BY Score DESC) AS RowNo from MemberRank WHERE GuildID=?) t WHERE MemberID=?", [guildID, member])).map(e => {return {rank: e.RowNo, score: e.Score}});
-            if (!res.length) return {rank: false, score: 0}
-            //SQL is 1 indexed
-            res[0].rank -= 1n;
+            if (!res.length) return {rank: 0, score: 0}
             return {rank: parseInt(res[0].rank.toString()), score: res[0].score};
         } finally {
             conn.release();
