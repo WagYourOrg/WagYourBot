@@ -165,11 +165,11 @@ class MRAdjust extends CommandTree<MemberRankData> {
                 .then("xp", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const user = await guild.members.fetch(args.user).catch(() => null);
                     if (!user) {
-                        channel.send(new RichEmbed().setTitle("MemberRankAdjust: add").setDescription(`Error: could not find user \`${args.user}\``))
+                        channel.send(new RichEmbed().setTitle("MemberRankAdjust: Add").setDescription(`Error: could not find user \`${args.user}\``))
                         return;
                     }
                     handler.database.guildMemberAddEXP(guild.id, this.plugin.name, user.id, parseInt(args.xp));
-                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Successfully added \`${args.xp}\` xp to ${user}`));
+                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Add").setDescription(`Successfully added \`${args.xp}\` xp to ${user}`));
                     (<MemberRankPlugin>this.plugin).forceUpdate(guild, await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data), handler);
                 }).or()
             .or()
@@ -178,11 +178,11 @@ class MRAdjust extends CommandTree<MemberRankData> {
                 .then("xp", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const user = await guild.members.fetch(args.user).catch(() => null);
                     if (!user) {
-                        channel.send(new RichEmbed().setTitle("MemberRankAdjust: sub").setDescription(`Error: could not find user \`${args.user}\``))
+                        channel.send(new RichEmbed().setTitle("MemberRankAdjust: Sub").setDescription(`Error: could not find user \`${args.user}\``))
                         return;
                     }
                     await handler.database.guildMemberAddEXP(guild.id, this.plugin.name, user.id, -parseInt(args.xp));
-                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Successfully subtracted \`${args.xp}\` xp from ${user}`));
+                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Sub").setDescription(`Successfully subtracted \`${args.xp}\` xp from ${user}`));
                     (<MemberRankPlugin>this.plugin).forceUpdate(guild, await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data), handler);
                 }).or()
             .or()
@@ -190,7 +190,7 @@ class MRAdjust extends CommandTree<MemberRankData> {
             .then("user", {type: TreeTypes.USER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.fetch(args.user).catch(() => null);
                 if (!user) {
-                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: reset").setDescription(`Error: could not find user \`${args.user}\``))
+                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Error: could not find user \`${args.user}\``))
                     return;
                 }
                 const xp = await handler.database.getGuildMemberEXP(guild.id, this.plugin.name, user.id);
