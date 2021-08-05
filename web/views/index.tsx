@@ -23,7 +23,7 @@ export default class Index extends Component<IndexProps> {
                     <h1>Automate Your Discord Server</h1>
                     <h2>Have a dynamic bot with just the features you need!</h2>
                     <div className= "inline">
-                        <a id= "add" href= "https://discordapp.com/api/oauth2/authorize?client_id=520769818870415380&scope=bot&permissions=8" target= "_blank">
+                        <a id= "add" href= "https://discordapp.com/api/oauth2/authorize?client_id=174312969386196993&scope=bot&permissions=8" target= "_blank">
                             <img src= "/static/images/discord.png" height= "50px" width= "50px"/>
                             Add To Discord
                         </a>
