@@ -20,7 +20,7 @@ class Help extends CommandTree<DefaultData> {
                     }
                 }
             }
-            channel.send(new RichEmbed().setTitle("Help: ERROR").setDescription(`Could not find command named \`${args.command?.toLowerCase()}\``).setColor(0xFF0000));
+            channel.send({embeds: [new RichEmbed().setTitle("Help: ERROR").setDescription(`Could not find command named \`${args.command?.toLowerCase()}\``).setColor(0xFF0000)]});
         })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {  
             const {enabled} = guild ? await handler.database.getGuild(guild.id, handler.defaultPrefix) : {enabled: handler.plugins.map(e => e.name)};
@@ -33,7 +33,7 @@ class Help extends CommandTree<DefaultData> {
                     reply.addField(plugin.name, plugin.commands.map(e => e.name).join('\n'), true);
                 }
             }
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         })
     }
 
@@ -70,7 +70,7 @@ class Permissions extends CommandTree<DefaultData> {
                     reply.addField(plugin.name, commands.join('\n'));
                 }
             }
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         })
         .or("add")
             .then("command", {type: TreeTypes.STRING})
@@ -105,7 +105,7 @@ class Permissions extends CommandTree<DefaultData> {
                     if (fail) {
                         reply.addField("Fail", `did not find command \`${args.command}\``);
                     }
-                    channel.send(reply);
+                    channel.send({embeds: [reply]});
                 }).or()
             .or()
         .or("del")
@@ -140,7 +140,7 @@ class Permissions extends CommandTree<DefaultData> {
                     if (fail) {
                         reply.addField("Fail", "**command** did not parse.");
                     }
-                    channel.send(reply);
+                    channel.send({embeds: [reply]});
                 }).or()
             .or()
         .or("reset")
@@ -165,7 +165,7 @@ class Permissions extends CommandTree<DefaultData> {
                 if (fail) {
                     reply.addField("Fail", "**command** did not parse.");
                 }
-                channel.send(reply);
+                channel.send({embeds: [reply]});
             })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
@@ -196,7 +196,7 @@ class Aliases extends CommandTree<DefaultData> {
                     reply.addField(`**${plugin.name}**`, commands.join('\n'));
                 }
             }
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         })
         .or("add")
             .then("command", {type: TreeTypes.STRING})
@@ -226,7 +226,7 @@ class Aliases extends CommandTree<DefaultData> {
                     if (fail) {
                         reply.addField("Fail", "**command** did not parse.");
                     }
-                    channel.send(reply);
+                    channel.send({embeds: [reply]});
                 }).or()
             .or()
         .or("del")
@@ -257,7 +257,7 @@ class Aliases extends CommandTree<DefaultData> {
                     if (fail) {
                         reply.addField("Fail", "**command** did not parse.");
                     }
-                    channel.send(reply);
+                    channel.send({embeds: [reply]});
                 }).or()
             .or()
         .or("reset")
@@ -282,7 +282,7 @@ class Aliases extends CommandTree<DefaultData> {
                 if (fail) {
                     reply.addField("Fail", "**command** did not parse.");
                 }
-                channel.send(reply);
+                channel.send({embeds: [reply]});
             })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);
@@ -307,7 +307,7 @@ class SetPrefix extends Command<DefaultData> {
         } else {
             reply.setDescription("Failed, **prefix** could not be parsed");
         }
-        channel.send(reply);
+        channel.send({embeds: [reply]});
     }
 
 }
@@ -327,7 +327,7 @@ class Plugins extends CommandTree<DefaultData> {
             const disable = plugins.filter(e => !enabled.includes(e)).join("\n");
             if (enable.length) reply.addField("Enabled", enable);
             if (disable.length) reply.addField("Disabled", disable);
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         })
         .or("info")
             .then("plugin", {type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
@@ -341,7 +341,7 @@ class Plugins extends CommandTree<DefaultData> {
                 } else {
                     reply.addField("Failed", "**Plugin** failed to parse.");
                 }
-                channel.send(reply);
+                channel.send({embeds: [reply]});
         }).or()
         .or("enable")
             .then("plugin",{type: TreeTypes.STRING}, async (args, remainingContent, member, guild, channel, message, handler) => {
@@ -355,7 +355,7 @@ class Plugins extends CommandTree<DefaultData> {
                 } else {
                     reply.addField("Failed", "**Plugin** failed to parse or is already enabled.");
                 }
-                channel.send(reply);
+                channel.send({embeds: [reply]});
 
             }).or()
         .or("disable")
@@ -370,7 +370,7 @@ class Plugins extends CommandTree<DefaultData> {
                 } else {
                     reply.addField("Failed", "**Plugin** failed to parse or is already disabled.");
                 }
-                channel.send(reply);
+                channel.send({embeds: [reply]});
             })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             this.selfHelp(channel, guild, handler);

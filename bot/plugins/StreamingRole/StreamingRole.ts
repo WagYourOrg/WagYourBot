@@ -14,9 +14,9 @@ class StreamRole extends CommandTree<StreamingRoleData> {
             const role = await guild.roles.fetch(args.role);
             if (role) {
                 await handler.database.setGuildPluginData(guild.id, this.plugin.name, {roleid: role.id});
-                channel.send(new RichEmbed().setTitle("StreamRole").setDescription(`Successfully set stream role to ${role}`));
+                channel.send({embeds: [new RichEmbed().setTitle("StreamRole").setDescription(`Successfully set stream role to ${role}`)]});
             } else {
-                channel.send(new RichEmbed().setTitle("StreamRole").setDescription(`role ${args.role} did not parse to a known role`));
+                channel.send({embeds: [new RichEmbed().setTitle("StreamRole").setDescription(`role ${args.role} did not parse to a known role`)]});
             }
         })
     }
@@ -27,7 +27,7 @@ class StreamingRolePlugin extends WebPlugin<StreamingRoleData> {
         handler.on("presenceUpdate", (oldp, newp) => this.onPresence(oldp, newp, handler));
     }
 
-    async onPresence(oldP: Presence | undefined, newP: Presence | undefined, handler: Handler) {
+    async onPresence(oldP: Presence | null, newP: Presence | undefined, handler: Handler) {
         try {
             const guild: Guild = <Guild>oldP?.guild ?? newP?.guild;
             const {enabled} = await handler.database.getGuild(guild.id, handler.defaultPrefix);

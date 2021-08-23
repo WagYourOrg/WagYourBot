@@ -11,20 +11,20 @@ class LogChannel extends CommandTree<ModToolsData> {
         this.then("set")
             .then("channel", {type: TreeTypes.CHANNEL}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const chnl = guild.channels.resolve(args.channel);
-                if (chnl && chnl.type !== "voice") {
+                if (chnl && chnl.type !== "GUILD_VOICE" && chnl.type !== "GUILD_STAGE_VOICE") {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     data.logChannel = chnl.id;
                     await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                    channel.send(new RichEmbed().setTitle("Log Channel").setDescription(`Log Channel set to ${chnl}.`));
+                    channel.send({embeds: [new RichEmbed().setTitle("Log Channel").setDescription(`Log Channel set to ${chnl}.`)]});
                 } else {
-                    channel.send(new RichEmbed().setTitle("Log Channel").setDescription(`Channel \`${args.channel}\` not found!`));
+                    channel.send({embeds: [new RichEmbed().setTitle("Log Channel").setDescription(`Channel \`${args.channel}\` not found!`)]});
                 }
             }).or()
         .or("disable", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
             data.logChannel = undefined;
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-            channel.send(new RichEmbed().setTitle("Log Channel").setDescription(`Log Channel removed.`));
+            channel.send({embeds: [new RichEmbed().setTitle("Log Channel").setDescription(`Log Channel removed.`)]});
         });
     }
 }
@@ -38,17 +38,17 @@ class LogMessageEdits extends CommandTree<ModToolsData> {
         this.then("true", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
             data.logChanges = true;
-            channel.send(new RichEmbed().setTitle("LogMessageEdits").setDescription(`Now logging edits and deleted messages in <#${data.logChannel}>`));
+            channel.send({embeds: [new RichEmbed().setTitle("LogMessageEdits").setDescription(`Now logging edits and deleted messages in <#${data.logChannel}>`)]});
         })
         .or("false", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
             data.logChanges = false;
-            channel.send(new RichEmbed().setTitle("LogMessageEdits").setDescription(`No longer logging edits and deleted messages in <#${data.logChannel}>`));
+            channel.send({embeds: [new RichEmbed().setTitle("LogMessageEdits").setDescription(`No longer logging edits and deleted messages in <#${data.logChannel}>`)]});
         })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
             data.logChanges = !data.logChanges;
-            channel.send(new RichEmbed().setTitle("LogMessageEdits").setDescription(`No longer logging edits and deleted messages in <#${data.logChannel}>`));
+            channel.send({embeds: [new RichEmbed().setTitle("LogMessageEdits").setDescription(`No longer logging edits and deleted messages in <#${data.logChannel}>`)]});
         })
     }
 
@@ -66,17 +66,19 @@ class MuteRole extends CommandTree<ModToolsData> {
                 const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                 data.muteRole = role.id;
                 await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                channel.send(new RichEmbed().setTitle("Log Channel").setDescription(`Mute role set to ${role}.`));
+                channel.send({embeds: [new RichEmbed().setTitle("Log Channel").setDescription(`Mute role set to ${role}.`)]});
                 this.updateMuteRole(guild, role);
             } else {
-                channel.send(new RichEmbed().setTitle("Mute Role").setDescription(`Role \`${args.role}\` not found!`));
+                channel.send({embeds: [new RichEmbed().setTitle("Mute Role").setDescription(`Role \`${args.role}\` not found!`)]});
             }
         })
     }
 
     updateMuteRole(guild: Guild, role: Role) {
-        for (const chnl of guild.channels.cache.values()) {
-            chnl.createOverwrite(role, {SEND_MESSAGES: false});
+        for (const channel of guild.channels.cache.values()) {
+            if (channel instanceof GuildChannel && channel.type !== "GUILD_VOICE" && channel.type !== "GUILD_STAGE_VOICE") {
+                channel.permissionOverwrites.create(role, {SEND_MESSAGES: false});
+            }
         }
     }
 }
@@ -93,12 +95,12 @@ class Warn extends CommandTree<ModToolsData> {
             if (user) {
                 const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                 const warning = new RichEmbed().setTitle("Warn").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                await channel.send({content: user, embed: warning});
+                await channel.send({content: user.toString(), embeds: [warning]});
                 if (data.logChannel) {
-                    (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                    (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                 }
             } else {
-                channel.send(new RichEmbed().setTitle("Warn").setDescription(`Failed to find user for \`${args.user}\``));
+                channel.send({embeds: [new RichEmbed().setTitle("Warn").setDescription(`Failed to find user for \`${args.user}\``)]});
             }
         });
     }
@@ -119,15 +121,15 @@ class Mute extends CommandTree<ModToolsData> {
                     if (data.muteRole && role) {
                         await user.roles.add(role, args.reason);
                         const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                        await channel.send({content: user, embed: warning});
+                        await channel.send({content: user.toString(), embeds: [warning]});
                         if (data.logChannel) {
-                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                         }
                     } else {
-                        channel.send(new RichEmbed().setTitle("Mute").setDescription(`Failed to mute user as \`muterole\` isn't set.`));
+                        channel.send({embeds: [new RichEmbed().setTitle("Mute").setDescription(`Failed to mute user as \`muterole\` isn't set.`)]});
                     }
                 } else {
-                    channel.send(new RichEmbed().setTitle("Mute").setDescription(`Failed to find user for \`${args.user}\``));
+                    channel.send({embeds: [new RichEmbed().setTitle("Mute").setDescription(`Failed to find user for \`${args.user}\``)]});
                 }
             })
     }
@@ -148,15 +150,15 @@ class UnMute extends CommandTree<ModToolsData> {
                     if (data.muteRole && role) {
                         await user.roles.remove(role, args.reason);
                         const warning = new RichEmbed().setTitle("UnMute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                        await channel.send({content: user, embed: warning});
+                        await channel.send({content: user.toString(), embeds: [warning]});
                         if (data.logChannel) {
-                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                         }
                     } else {
-                        channel.send(new RichEmbed().setTitle("UnMute").setDescription(`Failed to unmute user as \`muterole\` isn't set.`));
+                        channel.send({embeds: [new RichEmbed().setTitle("UnMute").setDescription(`Failed to unmute user as \`muterole\` isn't set.`)]});
                     }
                 } else {
-                    channel.send(new RichEmbed().setTitle("UnMute").setDescription(`Failed to find user for \`${args.user}\``));
+                    channel.send({embeds: [new RichEmbed().setTitle("UnMute").setDescription(`Failed to find user for \`${args.user}\``)]});
                 }
             })
     }
@@ -175,12 +177,12 @@ class Kick extends CommandTree<ModToolsData> {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     await user.kick(args.reason);
                     const warning = new RichEmbed().setTitle("Kick").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                    await user.send({content: user, embed: warning});
+                    await user.send({content: user.toString(), embeds: [warning]});
                     if (data.logChannel) {
-                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                     }
                 } else {
-                    channel.send(new RichEmbed().setTitle("Kick").setDescription(`Failed to find user for \`${args.user}\``));
+                    channel.send({embeds: [new RichEmbed().setTitle("Kick").setDescription(`Failed to find user for \`${args.user}\``)]});
                 }
             })
     }
@@ -199,12 +201,12 @@ class Ban extends CommandTree<ModToolsData> {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     await user.ban({reason: args.reason});
                     const warning = new RichEmbed().setTitle("Ban").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                    await user.send({content: user, embed: warning});
+                    await user.send({content: user.toString(), embeds: [warning]});
                     if (data.logChannel) {
-                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                     }
                 } else {
-                    channel.send(new RichEmbed().setTitle("Ban").setDescription(`Failed to find user for \`${args.user}\``));
+                    channel.send({embeds: [new RichEmbed().setTitle("Ban").setDescription(`Failed to find user for \`${args.user}\``)]});
                 }
             }).or("prune_days", {type: TreeTypes.INTEGER})
                 .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
@@ -213,12 +215,12 @@ class Ban extends CommandTree<ModToolsData> {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                         await user.ban({reason: args.reason, days: parseInt(args.prune_days)});
                         const warning = new RichEmbed().setTitle("Ban").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                        await user.send({content: user, embed: warning});
+                        await user.send({content: user.toString(), embeds: [warning]});
                         if (data.logChannel) {
-                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                         }
                     } else {
-                        channel.send(new RichEmbed().setTitle("Ban").setDescription(`Failed to find user for \`${args.user}\``));
+                        channel.send({embeds: [new RichEmbed().setTitle("Ban").setDescription(`Failed to find user for \`${args.user}\``)]});
                     }
                 })
     }
@@ -237,12 +239,12 @@ class UnBan extends CommandTree<ModToolsData> {
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     const warning = new RichEmbed().setTitle("UnBan").setDescription(`${user} (${user.tag})`).addField("Reason", args.reason);
-                    await channel.send(warning);
+                    await channel.send({embeds: [warning]});
                     if (data.logChannel) {
-                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send(warning.addField("By", member));
+                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                     }
                 } else {
-                    channel.send(new RichEmbed().setTitle("UnBan").setDescription(`Failed to find user for \`${args.user}\``));
+                    channel.send({embeds: [new RichEmbed().setTitle("UnBan").setDescription(`Failed to find user for \`${args.user}\``)]});
                 }
             })
     }
@@ -258,22 +260,22 @@ class Prune extends CommandTree<ModToolsData> {
             .then("message_id", {type: TreeTypes.INTEGER})
                 .then("count", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const msgs = await channel.bulkDelete(await channel.messages.fetch({before: args.message_id, limit: parseInt(args.count)}), true);
-                    channel.send(new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`));
+                    channel.send({embeds: [new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`)]});
                 }).or()
             .or()
         .or("after")
             .then("message_id", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const msgs = await channel.bulkDelete(await channel.messages.fetch({after: args.message_id, limit: 100}), true);
-                channel.send(new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`));
+                channel.send({embeds: [new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`)]});
             })
                 .then("count", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const msgs = await channel.bulkDelete(await channel.messages.fetch({after: args.message_id, limit: parseInt(args.count)}), true);
-                    channel.send(new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`));
+                    channel.send({embeds: [new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`)]});
                 }).or()
             .or()
         .or("count", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const msgs = await channel.bulkDelete(parseInt(args.count), true);
-            channel.send(new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`));
+            channel.send({embeds: [new RichEmbed().setTitle("Prune").setDescription(`Successfully deleted ${msgs.size} messages!`)]});
         })
     }
 }
@@ -293,10 +295,10 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                 const data = await handler.database.getGuildPluginData(oldMsg.guild.id, this.name, this.data);
                 if (data.logChanges && data.logChannel) {
                     const channel = await oldMsg.guild.channels.resolve(data.logChannel);
-                    if (channel && channel.type !== 'voice') {
+                    if (channel && channel.type !== 'GUILD_VOICE' && channel.type !== 'GUILD_STAGE_VOICE') {
                         const embed = new RichEmbed().setTitle(newMsg ? "Message Edited" : "Message Deleted")
-                            .setAuthor(oldMsg.author?.tag, oldMsg.author?.avatarURL({}) ?? undefined);
-                            embed.addField("Channel", oldMsg.channel);
+                            .setAuthor(<string>oldMsg.author?.tag, oldMsg.author?.avatarURL({}) ?? undefined);
+                            embed.addField("Channel", oldMsg.channel.toString());
                         if (newMsg) {
                             if (oldMsg.content && oldMsg.content.length > 1000) {
                                 embed.addField("From:", `\u200b${oldMsg.content.substring(0, 1000)}`, false);
@@ -311,12 +313,12 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                                 embed.addField("To: ", `\u200b${newMsg.content}`, false);
                             }
                         } else {
-                            embed.setDescription(oldMsg.content);
+                            embed.setDescription(<string>oldMsg.content);
                         }
                         const attachments = Array.from(oldMsg.attachments);
                         // console.log(attachments)
                         if (attachments.length) embed.addField("Attachments: ", attachments.map(e => `[${e[1].name}](${e[1].proxyURL}`).join("\n"));
-                        (<TextChannel>channel).send(embed);
+                        (<TextChannel>channel).send({embeds: [embed]});
                     }
                 }
             }
@@ -324,13 +326,13 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
     }
 
     private async onChannelCreate(channel: Channel, handler: Handler) {
-        if (channel instanceof GuildChannel && channel.type !== "voice") {
+        if (channel instanceof GuildChannel && channel.type !== "GUILD_VOICE" && channel.type !== "GUILD_STAGE_VOICE") {
             const {enabled} = await handler.database.getGuild(channel.guild.id, handler.defaultPrefix);
             if (enabled.includes(this.name)) {
                 const data = await handler.database.getGuildPluginData(channel.guild.id, this.name, this.data);
                 const role = await channel.guild.roles.fetch(<string>data.muteRole);
                 if (data.muteRole && role) {
-                    channel.createOverwrite(role, {SEND_MESSAGES: false});
+                    channel.permissionOverwrites.create(role, {SEND_MESSAGES: false});
                 }
             }
         }

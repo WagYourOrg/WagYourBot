@@ -1,7 +1,23 @@
-import { ClientUser, MessageEmbedOptions, MessageReaction, NewsChannel } from "discord.js";
-import { Client as BaseClient, DMChannel, Guild, GuildMember, Message, MessageEmbed, TextChannel, User } from "discord.js";
+import {
+    Client as BaseClient,
+    ClientUser,
+    DMChannel,
+    Guild,
+    GuildMember,
+    Intents,
+    Message, MessageActionRow,
+    MessageButton,
+    MessageEmbed,
+    MessageEmbedOptions,
+    MessageReaction,
+    NewsChannel,
+    TextBasedChannels,
+    TextChannel,
+    User
+} from "discord.js";
 import { SQLDatabase } from "../Database";
-import { PluginAliases, PluginPerms, Database, PluginSlug } from "../Structures";
+import { Database, PluginAliases, PluginPerms, PluginSlug } from "../Structures";
+import { MessageButtonStyles } from "discord.js/typings/enums";
 
 
 export abstract class Handler extends BaseClient {
@@ -12,7 +28,7 @@ export abstract class Handler extends BaseClient {
     readonly clientID;
 
     protected constructor(clientID: string) {
-        super({ partials: [ "REACTION", "MESSAGE", "USER" ] });
+        super({ partials: [ "REACTION", "MESSAGE", "USER" ], intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.DIRECT_MESSAGE_REACTIONS] });
         this.clientID = clientID;
         this.registerPlugins();
         this.database = new SQLDatabase(this.plugins.map(e => e.name), clientID);
@@ -55,7 +71,7 @@ export abstract class Handler extends BaseClient {
                 }
             }
         } catch(error) {
-            message.channel.send(new RichEmbed().setTitle("AN ERROR HAS OCCURED").setDescription(`Debug data dumped: \`\`\`${error}\`\`\``).setColor(0xFF0000));
+            message.channel.send({embeds: [new RichEmbed().setTitle("AN ERROR HAS OCCURED").setDescription(`Debug data dumped: \`\`\`${error}\`\`\``).setColor(0xFF0000)]});
         }
     }
 
@@ -110,7 +126,7 @@ export class Plugin<T> {
         for (const command of this.commands) {
             if (content === command.name || content.startsWith(command.name + " ")) {
                 if (!guildID && !command.allowDM) command.noDM(message);
-                if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
+                if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40n || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                     await command.message(content.substring(command.name.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
                 } else {
                     command.noPerms(message);
@@ -121,7 +137,7 @@ export class Plugin<T> {
             for (const alias of aliases[command.name] ?? command.aliases) {
                 if (content === alias || content.startsWith(alias + " ")) {
                     if (!guildID && !command.allowDM) command.noDM(message);
-                    if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40 || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
+                    if (!guildID || ((<GuildMember>message.member).permissions.bitfield & 40n || Plugin.checkRoles(<GuildMember>message.member, perms[command.name] ?? command.perms) || message.author.id === handler.owner)) {
                         await command.message(content.substring(alias.length + 1), guildID ? <GuildMember>message.member : message.author, message.guild, message.channel, message, handler);
                     } else {
                         command.noPerms(message);
@@ -189,7 +205,7 @@ export abstract class Command<T> {
                 reply.addField("Default Perms", this.perms.join(", "));
             }
         }
-        channel.send(reply);
+        channel.send({embeds: [reply]});
     }
 
     async noDM(message: Message) {
@@ -200,15 +216,15 @@ export abstract class Command<T> {
         return this.sendError("You Do Not Have Permission To Run This Command!", message);
     }
 
-    async sendError(error: string, message: { channel: TextChannel | DMChannel | NewsChannel }): Promise<Message> {
-        return await message.channel.send(new RichEmbed()
+    async sendError(error: string, message: { channel: TextBasedChannels }): Promise<Message> {
+        return await message.channel.send({embeds: [new RichEmbed()
             .setTitle(this.name)
             .setColor(0xFF0000)
             .setDescription(error)
-        );
+        ]});
     }
 
-    abstract message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): Promise<void>;
+    abstract message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextBasedChannels, message: Message, handler: Handler): Promise<void>;
 
     /**
      * do **not** await this... 
@@ -217,21 +233,29 @@ export abstract class Command<T> {
         let currentPage = 0;
         let maxPages = Math.ceil(lines.length / linesPerPage);
         if (maxPages > 1) {
-            let message = await channel.send(new RichEmbed(baseEmbed).setDescription((await lines.slice(0, linesPerPage)).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
-            await message.react("⬅️");
-            await message.react("➡️");
-            let reaction: MessageReaction | null = null;
-            do {
-                reaction = [...(await message.awaitReactions((reaction) => ["⬅️", "➡️"].includes(reaction.emoji.name), {idle: 60000, max:1})).values()][0];
-                await reaction?.users.remove(Array.from(reaction?.users.cache.keys()).filter(e => e != (<ClientUser>handler.user).id)[0]);
-                if (currentPage > 0 && reaction?.emoji?.name === "⬅️") --currentPage;
-                else if (currentPage + 1 < maxPages && reaction?.emoji?.name === "➡️") ++currentPage;
-                else continue;
-                message.edit(new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`));
-            } while (reaction);
+            let actions = new MessageActionRow().addComponents(
+                new MessageButton().setEmoji("⬅️").setCustomId("back").setStyle(MessageButtonStyles.PRIMARY),
+                new MessageButton().setEmoji("➡️").setCustomId("forward").setStyle(MessageButtonStyles.PRIMARY));
+            actions.components[0].setDisabled(true);
+            let message = await channel.send({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(0, linesPerPage)).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)], components: [actions]});
+            message.createMessageComponentCollector({filter: (i) => true, idle: 60000}).once('collect', async i => {
+                switch (i.customId) {
+                    case "back":
+                        actions.components[1].setDisabled(false);
+                        if (--currentPage == 0) actions.components[0].setDisabled(true);
+                        break;
+                    case "forward":
+                        actions.components[0].setDisabled(false);
+                        if (++currentPage + 1 >= maxPages) actions.components[1].setDisabled(true);
+                        break;
+                    default:
+                }
+                i.update({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)], components: [actions]});
+
+            });
             
         } else {
-            channel.send(new RichEmbed(baseEmbed).setDescription((await lines.slice(0, lines.length)).join("\n")));
+            channel.send({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(0, lines.length)).join("\n"))]});
         }
     }
 }

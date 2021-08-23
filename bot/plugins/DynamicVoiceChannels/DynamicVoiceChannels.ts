@@ -1,4 +1,4 @@
-import { CategoryChannel, Snowflake } from "discord.js";
+import { CategoryChannel, GuildChannel, Snowflake } from "discord.js";
 import { CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
 import {DVCData} from "./DynamicVoiceChannelscommon";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
@@ -11,26 +11,32 @@ class DVCSetCategory extends CommandTree<DVCData> {
     buildCommandTree(): void {
         this.then("channel", {type: TreeTypes.CHANNEL}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const chnl = guild.channels.resolve(args.channel);
-            let category: CategoryChannel;
+            let category: CategoryChannel | null = null;
             if (chnl) {
-                if (chnl.type === 'category') {
+                if (chnl.type === 'GUILD_CATEGORY') {
                     category = <CategoryChannel>chnl;
                 } else {
                     if (chnl.parent) {
-                        category = chnl.parent;
+                        if (chnl.parent?.type !== "GUILD_CATEGORY") {
+                            if (chnl.parent.parent) {
+                                category = chnl.parent.parent;
+                            }
+                        } else {
+                            category = chnl.parent;
+                        }
                     } else {
-                        channel.send(new RichEmbed().setTitle("DVC Categories").setDescription(`No parent category found for channel \`${chnl}\``));
+                        channel.send({embeds: [new RichEmbed().setTitle("DVC Categories").setDescription(`No parent category found for channel \`${chnl}\``)]});
                         return;
                     }
                 }
             } else {
-                channel.send(new RichEmbed().setTitle("DVC Categories").setDescription(`channel \`${args.channel}\` failed to parse.`));
+                channel.send({embeds: [new RichEmbed().setTitle("DVC Categories").setDescription(`channel \`${args.channel}\` failed to parse.`)]});
                 return;
             }
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
-            data.id = category.id;
+            data.id = category?.id;
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-            channel.send(new RichEmbed().setTitle("DVC Categories").setDescription(`Successfully set Dynamic Voice Channel category to ${category}`));
+            channel.send({embeds: [new RichEmbed().setTitle("DVC Categories").setDescription(`Successfully set Dynamic Voice Channel category to ${category}`)]});
         })
     }
 }
@@ -61,27 +67,27 @@ class DVCPlugin extends WebPlugin<DVCData> {
                     const data = await handler.database.getGuildPluginData(oldVoice.guild.id, this.name, this.data);
                     if (data.id) {
                         if (oldChannel && oldChannel.parent?.id === data.id) {
-                            const empty = [...oldChannel.parent.children.filter(e => (e.type === 'voice' && (e.members.size === 0))).values()];
+                            const empty = [...oldChannel.parent.children.filter(e => (e.type === 'GUILD_VOICE' && (e.members.size === 0))).values()];
                             if (empty.length === 0) {
-                                oldChannel.guild.channels.create(oldChannel.parent.name, {type: 'voice', parent: oldChannel.parent});
+                                oldChannel.guild.channels.create(oldChannel.parent.name, {type: 'GUILD_VOICE', parent: oldChannel.parent});
                             } else {
                                 empty.pop()?.setName(oldChannel.parent.name);
                                 for (const chnl of empty) {
-                                    await chnl.delete(`[${this.name}] extra voice channel.`);
+                                    await chnl.delete();
                                 }
                             }
                         }
                         if (newChannel && newChannel.parent?.id === data.id) {
                             if (newChannel.members.size === 1 && newChannel.id !== oldChannel?.id) {
-                                newChannel.setName(newVoice.member?.presence.activities[0]?.name ?? newChannel.name);
+                                newChannel.setName(newVoice.member?.presence?.activities[0]?.name ?? newChannel.name);
                             }
-                            const empty = [...newChannel.parent.children.filter(e => e.type === 'voice' && e.members.size === 0).values()];
+                            const empty = [...newChannel.parent.children.filter(e => e.type === 'GUILD_VOICE' && e.members.size === 0).values()];
                             if (empty.length === 0) {
-                                newChannel.guild.channels.create(newChannel.parent.name, {type: 'voice', parent: newChannel.parent});
+                                newChannel.guild.channels.create(newChannel.parent.name, {type: 'GUILD_VOICE', parent: newChannel.parent});
                             } else {
                                 empty.pop()?.setName(newChannel.parent.name);
                                 for (const chnl of empty) {
-                                    await chnl.delete(`[${this.name}] extra voice channel.`);
+                                    await chnl.delete();
                                 }
                             }
                         }

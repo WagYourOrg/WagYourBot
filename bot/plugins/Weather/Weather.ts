@@ -55,13 +55,13 @@ class Weather extends CommandTree<WeatherData> {
 
                 embed.addField("Observed At", location.current[0].$.observationtime);
 
-                response = await channel.send(embed);
+                response = await channel.send({embeds: [embed]});
             } else {
-                response = await channel.send(new RichEmbed().setTitle("Weather").setDescription(`location \`${args.location}\` failed to parse \n\n${text}`));
+                response = await channel.send({embeds: [new RichEmbed().setTitle("Weather").setDescription(`location \`${args.location}\` failed to parse \n\n${text}`)]});
             }
             if (guild && (await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data)).autoDelete) {
-                response?.delete({timeout: 20 * 1000});
-                message.delete({timeout: 20 * 1000});
+                setTimeout(response.delete, 20 * 1000);
+                setTimeout(message.delete, 20 * 1000);
             }
         })
     }
@@ -75,15 +75,15 @@ class WeatherDelete extends CommandTree<WeatherData> {
     buildCommandTree() {
         this.then("enable", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, {autoDelete: true});
-            channel.send(new RichEmbed().setTitle("Weather AutoDelete").setDescription("`enabled`"));
+            channel.send({embeds: [new RichEmbed().setTitle("Weather AutoDelete").setDescription("`enabled`")]});
         }).or("disable", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, {autoDelete: false});
-            channel.send(new RichEmbed().setTitle("Weather AutoDelete").setDescription("`disabled`"));
+            channel.send({embeds: [new RichEmbed().setTitle("Weather AutoDelete").setDescription("`disabled`")]});
         })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
             await handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, {autoDelete: !data.autoDelete});
-            channel.send(new RichEmbed().setTitle("Weather AutoDelete").setDescription(`\`${data.autoDelete ? "disabled" : "enabled"}\``));
+            channel.send({embeds: [new RichEmbed().setTitle("Weather AutoDelete").setDescription(`\`${data.autoDelete ? "disabled" : "enabled"}\``)]});
         });
     }
 }

@@ -6,7 +6,7 @@ class WagYourBot extends Handler {
         super("174312969386196993");
 
         this.on("ready", () => {
-            this.user?.setPresence({activity: { name: "bot.wagyourtail.xyz"}, status: 'online'});
+            this.user?.setPresence({activities: [{ name: "bot.wagyourtail.xyz"}], status: 'online'});
             console.log("ready");
         });
     }

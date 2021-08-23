@@ -8,7 +8,7 @@ import {
     TakeRoleData
 } from "./MessageActionscommon";
 import { Command, CommandTree, Handler, RichEmbed, Tree, TreeTypes } from "../../Handler";
-import { DMChannel, Message, MessageReaction, NewsChannel, Role, TextChannel } from "discord.js";
+import { DMChannel, Message, MessageReaction, NewsChannel, Role, TextBasedChannels, TextChannel } from "discord.js";
 import { response } from "express";
 
 
@@ -72,7 +72,7 @@ class InternalMessageAction extends CommandTree<MessageActionsData> {
         return false;
     }
 
-    async sendError(error: string, message: { channel: TextChannel | DMChannel | NewsChannel }): Promise<Message> {
+    async sendError(error: string, message: { channel: TextBasedChannels }): Promise<Message> {
         (<{message_actions_smuggled_data: Error}><unknown>message).message_actions_smuggled_data = new Error(error);
         //@ts-ignore
         return null;
@@ -232,7 +232,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                         data.actions.push(action_data);
                         await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                        channel.send(MessageAction.buildActionFromData(action_data, new RichEmbed().setTitle("Message Actions").setDescription(`Added Action for regex: \`${action_data.regex}\``)));
+                        channel.send({embeds: [MessageAction.buildActionFromData(action_data, new RichEmbed().setTitle("Message Actions").setDescription(`Added Action for regex: \`${action_data.regex}\``))]});
                         (<MessageActionsPlugin>this.plugin).compiled_guild_data[guild.id] = undefined;
                     } else {
                         this.sendError("did not recieve/parse action data", message);
@@ -244,23 +244,23 @@ class MessageAction extends CommandTree<MessageActionsData> {
                 const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                 const position = parseInt(args.position) - 1;
                 if (position < 0 || position >= data.actions.length) {
-                    channel.send(new RichEmbed().setTitle("Message Actions: Show").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`));
+                    channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Show").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`)]});
                     return;
                 }
-                channel.send(MessageAction.buildActionFromData(data.actions[position], new RichEmbed().setTitle("Message Actions: Show").setDescription(`Position: ${position + 1}, regex: \`/${data.actions[position].regex}/gi\``)));
+                channel.send({embeds: [MessageAction.buildActionFromData(data.actions[position], new RichEmbed().setTitle("Message Actions: Show").setDescription(`Position: ${position + 1}, regex: \`/${data.actions[position].regex}/gi\``))]});
             }).or("response")
                 .then("position", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     const position = parseInt(args.position) - 1;
                     if (position < 0 || position >= data.actions.length) {
-                        channel.send(new RichEmbed().setTitle("Message Actions: Show").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`));
+                        channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Show").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`)]});
                         return;
                     }
                     const action = data.actions[position];
                     if (action.types & MessageActionTypes.Respond) {
                         SendEmbed.sendResponse(<ResponseData>action.data, channel);
                     } else {
-                        channel.send(new RichEmbed().setTitle("Message Actions: Show Response").setDescription(`action #${position + 1} does now have a response.`));
+                        channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Show Response").setDescription(`action #${position + 1} does now have a response.`)]});
                     }
                 }).or()
             .or()
@@ -269,12 +269,12 @@ class MessageAction extends CommandTree<MessageActionsData> {
                 const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                 const position = parseInt(args.position) - 1;
                 if (position < 0 || position >= data.actions.length) {
-                    channel.send(new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`));
+                    channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`)]});
                     return;
                 }
                 const deleted = data.actions.splice(position, 1)[0];
                 await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                channel.send(MessageAction.buildActionFromData(deleted, new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Deleted position ${position + 1} with regex \`/${deleted.regex}/gi\``)));
+                channel.send({embeds: [MessageAction.buildActionFromData(deleted, new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Deleted position ${position + 1} with regex \`/${deleted.regex}/gi\``))]});
                 (<MessageActionsPlugin>this.plugin).compiled_guild_data[guild.id] = undefined;
             }).or()
         .or("modify")
@@ -283,13 +283,13 @@ class MessageAction extends CommandTree<MessageActionsData> {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     const position = parseInt(args.position) - 1;
                     if (position < 0 || position >= data.actions.length) {
-                        channel.send(new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`));
+                        channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`)]});
                         return;
                     }
                     const oldRegex = data.actions[position].regex;
                     data.actions[position].regex = args.regex;
                     await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                    channel.send(new RichEmbed().setTitle(`Message Action: Modify`).setDescription(`changed regex in position ${position + 1},\n\`/${oldRegex}/gi\` -> \`/${args.regex}/gi\``));
+                    channel.send({embeds: [new RichEmbed().setTitle(`Message Action: Modify`).setDescription(`changed regex in position ${position + 1},\n\`/${oldRegex}/gi\` -> \`/${args.regex}/gi\``)]});
                     (<MessageActionsPlugin>this.plugin).compiled_guild_data[guild.id] = undefined;
                 })
                 .or("remove")
@@ -297,7 +297,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                         const position = parseInt(args.position) - 1;
                         if (position < 0 || position >= data.actions.length) {
-                            channel.send(new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`));
+                            channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`)]});
                             return;
                         }
                         switch (args.action_name) {
@@ -333,7 +333,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
                             }
                         }
                         await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                        channel.send(MessageAction.buildActionFromData(data.actions[position], new RichEmbed().setTitle("Message Actions: Removed").setDescription(`removed \`${args.action_name}\` to position ${position + 1} with regex \`/${data.actions[position].regex}/gi\``)));
+                        channel.send({embeds: [MessageAction.buildActionFromData(data.actions[position], new RichEmbed().setTitle("Message Actions: Removed").setDescription(`removed \`${args.action_name}\` to position ${position + 1} with regex \`/${data.actions[position].regex}/gi\``))]});
                         (<MessageActionsPlugin>this.plugin).compiled_guild_data[guild.id] = undefined;
                     })
                     .or()
@@ -342,7 +342,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                         const position = parseInt(args.position) - 1;
                         if (position < 0 || position >= data.actions.length) {
-                            channel.send(new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`));
+                            channel.send({embeds: [new RichEmbed().setTitle("Message Actions: Delete").setDescription(`Position, ${position}, out of range. max: ${data.actions.length}`)]});
                             return;
                         }
                         await this.internal_action.message(args.actions, member, guild, channel, message, handler);
@@ -354,7 +354,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
                             data.actions[position].data = Object.assign(data.actions[position].data, newData.data);
                         }
                         await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                        channel.send(MessageAction.buildActionFromData(data.actions[position], new RichEmbed().setTitle("Message Actions: ADD").setDescription(`Added to position ${position + 1} with regex \`/${data.actions[position].regex}/gi\``)));
+                        channel.send({embeds: [MessageAction.buildActionFromData(data.actions[position], new RichEmbed().setTitle("Message Actions: ADD").setDescription(`Added to position ${position + 1} with regex \`/${data.actions[position].regex}/gi\``))]});
                         (<MessageActionsPlugin>this.plugin).compiled_guild_data[guild.id] = undefined;
                     })
     }
@@ -366,7 +366,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
 
     }
 
-    async sendError(error: string, message: { channel: TextChannel | DMChannel | NewsChannel }): Promise<Message> {
+    async sendError(error: string, message: { channel: TextBasedChannels }): Promise<Message> {
         (<{smuggled_embed_data: Error}><unknown>message).smuggled_embed_data = new Error(error);
         //@ts-ignore
         return null;
@@ -509,7 +509,7 @@ class SendEmbed extends CommandTree<MessageActionsData> {
         for (const field of data.field) {
             embed.addField(field.title, field.body, field.inline);
         }
-        const message = await channel.send(embed);
+        const message = await channel.send({embeds: [embed]});
         if (data.deleteReaction) {
             MessageActionsPlugin.doDeleteReaction(message);
         }
@@ -558,9 +558,9 @@ class MessageActionsPlugin extends WebPlugin<MessageActionsData> {
 
     static async doDeleteReaction(message: Message) {
         await message.react("🗑️");
-        let reaction: MessageReaction | null = [...(await message.awaitReactions((reaction) => "🗑️" === reaction.emoji.name, {idle: 60000, max:1})).values()][0]
+        let reaction: MessageReaction | null = [...(await message.awaitReactions({filter: (reaction) => "🗑️" === reaction.emoji.name, idle: 60000, max:1})).values()][0]
         if (reaction) {
-            await message.delete({reason: "Delete Reaction"});
+            await message.delete();
         }
     }
 

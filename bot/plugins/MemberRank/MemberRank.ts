@@ -27,15 +27,15 @@ class MRRole extends CommandTree<MemberRankData> {
                 .setTitle("MemberRankRole: list");
             const dynamic: string[] = [];
             for (const [key, val] of Object.entries(data.dynamic)) {
-                dynamic.push(`${key}%: ${await guild.roles.fetch(val)}`);
+                dynamic.push(`${key}%: ${await guild.roles.fetch(<string>val)}`);
             }
             reply.addField("Dynamic", dynamic.join("\n"));
             const statuc: string[] = [];
             for (const [key, val] of Object.entries(data.static)) {
-                statuc.push(`${key}: ${await guild.roles.fetch(val)}`);
+                statuc.push(`${key}: ${await guild.roles.fetch(<string>val)}`);
             }
             reply.addField("Static", statuc.join("\n"));
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         })
         .or("add")
             .then("percent", {type: /(\d+)%/, argFilter: (arg) => <string>arg[1]})
@@ -44,16 +44,16 @@ class MRRole extends CommandTree<MemberRankData> {
                     const role = await guild.roles.fetch(args.role);
                     const percent = parseInt(args.percent);
                     if (percent < 0 || percent > 100) {
-                        channel.send(new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: percent must be in range 0 - 100, got ${percent}`));
+                        channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: percent must be in range 0 - 100, got ${percent}`)]});
                         return;
                     }
                     if (!role) {
-                        channel.send(new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: did not find role for \`${args.role}\``));
+                        channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: did not find role for \`${args.role}\``)]});
                         return;
                     }
                     data.dynamic[percent] = role.id;
                     await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                    channel.send(new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Success, members over ${percent}% should recieve ${role}`));
+                    channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Success, members over ${percent}% should recieve ${role}`)]});
                     (<MemberRankPlugin>this.plugin).forceUpdate(guild, data, handler);
                 }).or()
             .or("rank", {type: TreeTypes.INTEGER})
@@ -62,16 +62,16 @@ class MRRole extends CommandTree<MemberRankData> {
                     const role = await guild.roles.fetch(args.role);
                     const rank = parseInt(args.rank);
                     if (rank < 1) {
-                        channel.send(new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: rank must be > 0, got ${rank}`));
+                        channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: rank must be > 0, got ${rank}`)]});
                         return;
                     }
                     if (!role) {
-                        channel.send(new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: did not find role for \`${args.role}\``));
+                        channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Error: did not find role for \`${args.role}\``)]});
                         return;
                     }
                     data.static[rank] = role.id;
                     await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                    channel.send(new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Success, members over rank ${rank} should recieve ${role}`));
+                    channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Add").setDescription(`Success, members over rank ${rank} should recieve ${role}`)]});
                     (<MemberRankPlugin>this.plugin).forceUpdate(guild, data, handler);
                 }).or()
             .or()
@@ -90,7 +90,7 @@ class MRRole extends CommandTree<MemberRankData> {
                         }
                     }
                     await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                    channel.send(new RichEmbed().setTitle("MemberRankRole: Delete").setDescription(`Success, any rank/percent associated with <@${args.role}> has been removed.`));
+                    channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Delete").setDescription(`Success, any rank/percent associated with <@${args.role}> has been removed.`)]});
                 }).or()
             .or("percent", {type: /(d+)%/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const percent = parseInt(args.percent);
@@ -98,7 +98,7 @@ class MRRole extends CommandTree<MemberRankData> {
                 const role = (await guild.roles.fetch(<Snowflake>data.dynamic[percent])) ?? data.dynamic[percent];
                 data.dynamic[percent] = undefined;
                 await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                channel.send(new RichEmbed().setTitle("MemberRankRole: Delete").setDescription(`Success, ${percent}% -> ${role} has been removed.`));
+                channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Delete").setDescription(`Success, ${percent}% -> ${role} has been removed.`)]});
             })
             .or("rank", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const rank = parseInt(args.rank);
@@ -106,12 +106,12 @@ class MRRole extends CommandTree<MemberRankData> {
                 const role = (await guild.roles.fetch(<Snowflake>data.static[rank])) ?? data.static[rank];
                 data.static[rank] = undefined;
                 await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                channel.send(new RichEmbed().setTitle("MemberRankRole: Delete").setDescription(`Success, ${rank} -> ${role} has been removed.`));
+                channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: Delete").setDescription(`Success, ${rank} -> ${role} has been removed.`)]});
             }).or()
         .or("forceUpdate", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
-            const msg = await channel.send(new RichEmbed().setTitle("MemberRankRole: force update").setDescription(`started force update of rank role assignments...`));
+            const msg = await channel.send({embeds: [new RichEmbed().setTitle("MemberRankRole: force update").setDescription(`started force update of rank role assignments...`)]});
             await (<MemberRankPlugin>this.plugin).forceUpdate(guild, await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data), handler);
-            msg.edit(new RichEmbed().setTitle("MemberRankRole: force update").setDescription(`finished force update of rank role assignments.`))
+            msg.edit({embeds: [new RichEmbed().setTitle("MemberRankRole: force update").setDescription(`finished force update of rank role assignments.`)]});
         })
 
                 
@@ -129,28 +129,28 @@ class MRXP extends CommandTree<MemberRankData> {
                 .setTitle("MemberRankXP");
             const user = await guild.members.fetch(args.user).catch(() => null);
             if (!user) {
-                channel.send(reply.setDescription(`Error: could not find user \`${args.user}\``));
+                channel.send({embeds: [reply.setDescription(`Error: could not find user \`${args.user}\``)]});
                 return;
             }
             const xp = await handler.database.getGuildMemberEXP(guild.id, this.plugin.name, user.id);
-            reply.setDescription(user);
+            reply.setDescription(user.toString());
             if (!xp.rank) {
                 reply.addField("Rank: #inf", "0 xp");
             } else {
                 reply.addField(`Rank: #${xp.rank}`, `${xp.score} xp`);
             }
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         }).defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             const reply = new RichEmbed()
                 .setTitle("MemberRankXP");
             const xp = await handler.database.getGuildMemberEXP(<string>guild?.id, this.plugin.name, member.id);
-            reply.setDescription(member);
+            reply.setDescription(member.toString());
             if (!xp.rank) {
                 reply.addField("Rank: #inf", "0 xp");
             } else {
                 reply.addField(`Rank: #${xp.rank}`, `${xp.score} xp`);
             }
-            channel.send(reply);
+            channel.send({embeds: [reply]});
         })
     }
 }
@@ -165,11 +165,11 @@ class MRAdjust extends CommandTree<MemberRankData> {
                 .then("xp", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const user = await guild.members.fetch(args.user).catch(() => null);
                     if (!user) {
-                        channel.send(new RichEmbed().setTitle("MemberRankAdjust: Add").setDescription(`Error: could not find user \`${args.user}\``))
+                        channel.send({embeds: [new RichEmbed().setTitle("MemberRankAdjust: Add").setDescription(`Error: could not find user \`${args.user}\``)]})
                         return;
                     }
                     handler.database.guildMemberAddEXP(guild.id, this.plugin.name, user.id, parseInt(args.xp));
-                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Add").setDescription(`Successfully added \`${args.xp}\` xp to ${user}`));
+                    channel.send({embeds: [new RichEmbed().setTitle("MemberRankAdjust: Add").setDescription(`Successfully added \`${args.xp}\` xp to ${user}`)]});
                     (<MemberRankPlugin>this.plugin).forceUpdate(guild, await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data), handler);
                 }).or()
             .or()
@@ -178,11 +178,11 @@ class MRAdjust extends CommandTree<MemberRankData> {
                 .then("xp", {type: TreeTypes.INTEGER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const user = await guild.members.fetch(args.user).catch(() => null);
                     if (!user) {
-                        channel.send(new RichEmbed().setTitle("MemberRankAdjust: Sub").setDescription(`Error: could not find user \`${args.user}\``))
+                        channel.send({embeds: [new RichEmbed().setTitle("MemberRankAdjust: Sub").setDescription(`Error: could not find user \`${args.user}\``)]});
                         return;
                     }
                     await handler.database.guildMemberAddEXP(guild.id, this.plugin.name, user.id, -parseInt(args.xp));
-                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Sub").setDescription(`Successfully subtracted \`${args.xp}\` xp from ${user}`));
+                    channel.send({embeds: [new RichEmbed().setTitle("MemberRankAdjust: Sub").setDescription(`Successfully subtracted \`${args.xp}\` xp from ${user}`)]});
                     (<MemberRankPlugin>this.plugin).forceUpdate(guild, await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data), handler);
                 }).or()
             .or()
@@ -190,12 +190,12 @@ class MRAdjust extends CommandTree<MemberRankData> {
             .then("user", {type: TreeTypes.USER}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const user = await guild.members.fetch(args.user).catch(() => null);
                 if (!user) {
-                    channel.send(new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Error: could not find user \`${args.user}\``))
+                    channel.send({embeds: [new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Error: could not find user \`${args.user}\``)]});
                     return;
                 }
                 const xp = await handler.database.getGuildMemberEXP(guild.id, this.plugin.name, user.id);
                 await handler.database.guildMemberAddEXP(guild.id, this.plugin.name, user.id, -xp.score);
-                channel.send(new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Successfully reset ${user} to 0 xp.`));
+                channel.send({embeds: [new RichEmbed().setTitle("MemberRankAdjust: Reset").setDescription(`Successfully reset ${user} to 0 xp.`)]});
                 (<MemberRankPlugin>this.plugin).forceUpdate(guild, await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data), handler);
             })
             
