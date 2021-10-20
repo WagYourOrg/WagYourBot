@@ -288,7 +288,7 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
             return;
         }
         const messages = <Message[]>(await Promise.all(data.message.map(e => (<TextChannel>chnl).messages.fetch(e).catch(() => null)))).filter(e => e !== null);
-        const reactions = Object.keys(data.roles).sort();
+        const reactions = Object.keys(data.roles).sort().filter(e => guild.emojis.resolve(decodeURIComponent(e).split(':')[1]) != null && guild.roles.resolve(<string>data.roles[e]) != null);
         let i: number;
         for (i = 0; i < Math.ceil(reactions.length / 15); ++i) {
             if (i >= messages.length) {
