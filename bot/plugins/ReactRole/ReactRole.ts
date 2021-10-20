@@ -53,7 +53,7 @@ class ReactRole extends CommandTree<ReactRoleData> {
                     }
                 }).or()
             .or("emoji")
-                .or("emoji", {type: /<(a?:[^:+]:\d+)>\b|([^\s]+)\b/, argFilter: (arg, message) => <string>(arg[1] ? arg[1] : arg[2])}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("emoji", {type: /<(a?:[^:+]:\d+)>\b|([^\s]+)\b/, argFilter: (arg, message) => <string>(arg[1] ? arg[1] : arg[2])}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const emoji = handler.emojis.resolveIdentifier(args.emoji);
                     if (emoji) {
                         const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
