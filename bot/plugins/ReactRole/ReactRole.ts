@@ -67,7 +67,14 @@ class ReactRole extends CommandTree<ReactRoleData> {
                     }
                 }).or()
             .or()
-        .or("clear", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
+        .or("repair", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+            for (const reaction of Object.keys(data.roles).sort().filter(e => guild.emojis.resolve(decodeURIComponent(e).split(':')[1]) == null && guild.roles.resolve(<string>data.roles[e]) == null)) {
+                data.roles[reaction] = undefined;
+            }
+            handler.database.setGuildPluginData(<string>guild.id, this.plugin.name, data);
+            (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
+        }).or("clear", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
             data.roles = {};
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
