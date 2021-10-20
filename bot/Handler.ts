@@ -236,7 +236,7 @@ export abstract class Command<T> {
                 new MessageButton().setEmoji("➡️").setCustomId("forward").setStyle(MessageButtonStyles.PRIMARY));
             actions.components[0].setDisabled(true);
             let message = await channel.send({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(0, linesPerPage)).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)], components: [actions]});
-            message.createMessageComponentCollector({filter: (i) => true, idle: 60000}).once('collect', async i => {
+            message.createMessageComponentCollector({filter: (i) => true, idle: 60000}).on('collect', async i => {
                 switch (i.customId) {
                     case "back":
                         actions.components[1].setDisabled(false);
@@ -248,7 +248,7 @@ export abstract class Command<T> {
                         break;
                     default:
                 }
-                i.update({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)]});
+                i.update({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)], components: [actions]});
 
             });
             
