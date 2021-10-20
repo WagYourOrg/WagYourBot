@@ -1,6 +1,5 @@
 import {
     Client as BaseClient,
-    ClientUser,
     DMChannel,
     Guild,
     GuildMember,
@@ -9,7 +8,6 @@ import {
     MessageButton,
     MessageEmbed,
     MessageEmbedOptions,
-    MessageReaction,
     NewsChannel,
     TextBasedChannels,
     TextChannel,
@@ -33,7 +31,7 @@ export abstract class Handler extends BaseClient {
         this.registerPlugins();
         this.database = new SQLDatabase(this.plugins.map(e => e.name), clientID);
 
-        this.on("message", this.onMessage);
+        this.on("messageCreate", this.onMessage);
     }
 
     abstract registerPlugins(): void;
@@ -250,7 +248,7 @@ export abstract class Command<T> {
                         break;
                     default:
                 }
-                i.update({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)], components: [actions]});
+                i.update({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(currentPage * linesPerPage, Math.min((currentPage + 1) * linesPerPage, lines.length))).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)]});
 
             });
             

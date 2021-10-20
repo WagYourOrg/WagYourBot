@@ -1,4 +1,4 @@
-import { Guild, GuildChannel, Message, NewsChannel, Snowflake, TextChannel } from "discord.js";
+import { Guild, GuildChannel, Message, NewsChannel, TextChannel } from "discord.js";
 import { Command, CommandTree, Handler, Plugin, RichEmbed, TreeTypes } from "../../Handler";
 import {ReactRoleData} from "./ReactRolecommon";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
@@ -34,35 +34,39 @@ class ReactRole extends CommandTree<ReactRoleData> {
                 }).or()
             .or()
         .or("del")
-            .then("role", {type: TreeTypes.ROLE}, async (args, remainingContent, member, guild, channel, message, handler) => {
-                const role = guild.roles.resolve(args.role);
-                if (role) {
-                    const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
-                    for (const [key, val] of Object.keys(data.roles)) {
-                        if (val === role.id) {
-                            data.roles[key] = undefined;
-                            await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                            channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Successfully removed ${key} -> <@${val}>`)]});
-                            (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
-                            break;
+            .then("role")
+                .then("role", {type: TreeTypes.ROLE}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const role = guild.roles.resolve(args.role);
+                    if (role) {
+                        const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                        for (const [key, val] of Object.keys(data.roles)) {
+                            if (val === role.id) {
+                                data.roles[key] = undefined;
+                                await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
+                                channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Successfully removed ${key} -> <@${val}>`)]});
+                                (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
+                                break;
+                            }
                         }
+                    } else {
+                        channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Unknown role: ${args.role}`)]});
                     }
-                } else {
-                    channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Unknown role: ${args.role}`)]});
-                }
-            }).or("emoji", {type: /<(a?:[^:+]:\d+)>\b|([^\s]+)\b/, argFilter: (arg, message) => <string>(arg[1] ? arg[1] : arg[2])}, async (args, remainingContent, member, guild, channel, message, handler) => {
-                const emoji = handler.emojis.resolveIdentifier(args.emoji);
-                if (emoji) {
-                    const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
-                    const val = data.roles[emoji];
-                    data.roles[emoji] = undefined;
-                    await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                    channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Successfully removed ${emoji} -> <@${val}>`)]});
-                    (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
-                } else {
-                    channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Unknown emoji: ${args.emoji}`)]});
-                }
-            }).or()
+                }).or()
+            .or("emoji")
+                .or("emoji", {type: /<(a?:[^:+]:\d+)>\b|([^\s]+)\b/, argFilter: (arg, message) => <string>(arg[1] ? arg[1] : arg[2])}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const emoji = handler.emojis.resolveIdentifier(args.emoji);
+                    if (emoji) {
+                        const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
+                        const val = data.roles[emoji];
+                        data.roles[emoji] = undefined;
+                        await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
+                        channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Successfully removed ${emoji} -> <@${val}>`)]});
+                        (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
+                    } else {
+                        channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Unknown emoji: ${args.emoji}`)]});
+                    }
+                }).or()
+            .or()
         .or("clear", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
             data.roles = {};
