@@ -241,15 +241,11 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                     if ((await handler.database.getGuild(guild.id, handler.defaultPrefix)).enabled.includes(this.name)) {
                         const data = await handler.database.getGuildPluginData(guild.id, this.name, this.data);
                         if (data.message.includes(messageid)) {
-                            if (data.roles[reaction.emoji.identifier]) {
+                            const emojiID = handler.emojis.resolveIdentifier(reaction.emoji);
+                            if (!emojiID) return;
+                            if (data.roles[emojiID]) {
                                 const member = guild.members.resolve(user.id);
-                                member?.roles.add(<string>data.roles[reaction.emoji.identifier]);
-                            } else if (reaction.emoji.id && data.roles[reaction.emoji.id]) {
-                                const member = guild.members.resolve(user.id);
-                                member?.roles.add(<string>data.roles[reaction.emoji.id]);
-                                data.roles[reaction.emoji.identifier] = data.roles[reaction.emoji.id];
-                                data.roles[reaction.emoji.id] = undefined;
-                                handler.database.setGuildPluginData(guild.id, this.name, data);
+                                member?.roles.add(<string>data.roles[emojiID]);
                             }
                         }
                     }
@@ -266,15 +262,11 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                     if ((await handler.database.getGuild(guild.id, handler.defaultPrefix)).enabled.includes(this.name)) {
                         const data = await handler.database.getGuildPluginData(guild.id, this.name, this.data);
                         if (data.message.includes(messageid)) {
-                            if (data.roles[reaction.emoji.identifier]) {
+                            const emojiID = handler.emojis.resolveIdentifier(reaction.emoji);
+                            if (!emojiID) return;
+                            if (data.roles[emojiID]) {
                                 const member = guild.members.resolve(user.id);
-                                member?.roles.remove(<string>data.roles[reaction.emoji.identifier]);
-                            } else if (reaction.emoji.id && data.roles[reaction.emoji.id]) {
-                                const member = guild.members.resolve(user.id);
-                                member?.roles.remove(<string>data.roles[reaction.emoji.id]);
-                                data.roles[reaction.emoji.identifier] = data.roles[reaction.emoji.id];
-                                data.roles[reaction.emoji.id] = undefined;
-                                handler.database.setGuildPluginData(guild.id, this.name, data);
+                                member?.roles.remove(<string>data.roles[emojiID]);
                             }
                         }
                     }
@@ -304,7 +296,7 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                 data.message.push(newMsg.id);
                 await handler.database.setGuildPluginData(guild.id, this.name, data);
             }
-            const remove = messages[i].reactions.cache.filter(e => reactions.slice(15 * i, Math.min(15 * (i + 1), reactions.length)).includes(e.emoji.identifier));
+            const remove = messages[i].reactions.cache.filter(e => reactions.slice(15 * i, Math.min(15 * (i + 1), reactions.length)).includes(handler.emojis.resolveIdentifier(e.emoji)));
             remove.forEach(e => e.remove());
             reactions.slice(15 * i, 15 * (i + 1)).forEach(e => messages[i].react(e));
             if (messages[i].editable) {
