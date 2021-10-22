@@ -296,7 +296,7 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                 data.message.push(newMsg.id);
                 await handler.database.setGuildPluginData(guild.id, this.name, data);
             }
-            const remove = messages[i].reactions.cache.filter(e => reactions.slice(15 * i, Math.min(15 * (i + 1), reactions.length)).includes(handler.emojis.resolveIdentifier(e.emoji)));
+            const remove = messages[i].reactions.cache.filter(e => reactions.slice(15 * i, Math.min(15 * (i + 1), reactions.length)).includes(<string>handler.emojis.resolveIdentifier(e.emoji)));
             remove.forEach(e => e.remove());
             reactions.slice(15 * i, 15 * (i + 1)).forEach(e => messages[i].react(e));
             if (messages[i].editable) {
