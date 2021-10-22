@@ -81,7 +81,7 @@ class ReactRole extends CommandTree<ReactRoleData> {
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
             channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Delete").setDescription(`Successfully removed all role assignments!`)]});
             (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
-        }).or("setchannel", {type: TreeTypes.CHANNEL}, async (args, remainingContent, member, guild, channel, message, handler) => {
+        }).or("setchannel").then("channel", {type: TreeTypes.CHANNEL}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
             data.channel = args.setchannel;
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
