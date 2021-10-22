@@ -289,6 +289,7 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
 
 
     private async onMessageChange(oldMsg: Message | PartialMessage, newMsg: Message | PartialMessage | null, handler: Handler) {
+        if (oldMsg.author?.bot) return;
         if (oldMsg.guild !== null) {
             const {enabled} = await handler.database.getGuild(oldMsg.guild.id, handler.defaultPrefix);
             if (enabled.includes(this.name)) {
@@ -297,7 +298,7 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                     const channel = await oldMsg.guild.channels.resolve(data.logChannel);
                     if (channel && channel.type !== 'GUILD_VOICE' && channel.type !== 'GUILD_STAGE_VOICE') {
                         const embed = new RichEmbed().setTitle(newMsg ? "Message Edited" : "Message Deleted")
-                            .setAuthor(<string>oldMsg.author?.tag, oldMsg.author?.avatarURL({}) ?? undefined);
+                            .setAuthor(<string>oldMsg.author?.tag ?? "unknown", oldMsg.author?.avatarURL({}) ?? undefined);
                             embed.addField("Channel", oldMsg.channel.toString());
                         if (newMsg) {
                             if (oldMsg.content && oldMsg.content.length > 1000) {
