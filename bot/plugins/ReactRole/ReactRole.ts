@@ -290,10 +290,14 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                             const data = await handler.database.getGuildPluginData(guild.id, this.name, this.data);
                             const roleId = interaction.customId.replace("ReactRole:", "");
                             if (data.roles[roleId]) {
-                                if ((<GuildMember>interaction.member)?.roles?.cache.has(<Snowflake>data.roles[roleId])) {
-                                    (<GuildMember>interaction.member)?.roles.remove(<Snowflake>data.roles[roleId]);
+                                const role = guild.roles.resolve(<string>data.roles[roleId]);
+                                if (!role) return;
+                                if ((<GuildMember>interaction.member)?.roles?.cache.has(role.id)) {
+                                    (<GuildMember>interaction.member)?.roles.remove(role);
+                                    interaction.reply({content: `Successfully removed ${role}`})
                                 } else {
-                                    (<GuildMember>interaction.member)?.roles.add(<Snowflake>data.roles[roleId]);
+                                    (<GuildMember>interaction.member)?.roles.add(role);
+                                    interaction.reply({content: `Successfully added ${role}`})
                                 }
                             }
                         }
