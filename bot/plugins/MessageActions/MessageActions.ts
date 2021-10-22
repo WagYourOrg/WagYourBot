@@ -221,7 +221,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
             Command.paginateData(channel, handler, new RichEmbed().setTitle("Message Actions: List"), lines);
         })
         .or("add")
-            .then("match", {type: /(\/|`)(.*)\1/, argFilter: (arg) => <string>arg[2]})
+            .then("match", {type: /(\/|`)(.*?[^\\])\1/, argFilter: (arg) => <string>arg[2]})
                 .then("actions", {type: /do (.+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     await this.internal_action.message(args.actions, member, guild, channel, message, handler);
                     const action_data = (<{message_actions_smuggled_data: MessageActionData | undefined | Error}><unknown>message).message_actions_smuggled_data;
