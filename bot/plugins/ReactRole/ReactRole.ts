@@ -294,10 +294,10 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
                                 if (!role) return;
                                 if ((<GuildMember>interaction.member)?.roles?.cache.has(role.id)) {
                                     (<GuildMember>interaction.member)?.roles.remove(role);
-                                    interaction.reply({content: `Successfully removed ${role}`})
+                                    await interaction.reply({content: `Successfully removed ${role}`, ephemeral: true})
                                 } else {
                                     (<GuildMember>interaction.member)?.roles.add(role);
-                                    interaction.reply({content: `Successfully added ${role}`})
+                                    await interaction.reply({content: `Successfully added ${role}`, ephemeral: true})
                                 }
                             }
                         }
