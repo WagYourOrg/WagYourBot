@@ -85,6 +85,7 @@ class ReactRole extends CommandTree<ReactRoleData> {
             const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
             data.channel = args.channel;
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
+            channel.send({embeds: [new RichEmbed().setTitle("ReactRole: Channel").setDescription(`Successfully set channel to <#${args.channel}>`)]});
         });
     }
 
