@@ -83,7 +83,7 @@ class ReactRole extends CommandTree<ReactRoleData> {
             (<ReactRolePlugin>this.plugin).updateMessages(guild, data, handler);
         }).or("setchannel").then("channel", {type: TreeTypes.CHANNEL}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild.id, this.plugin.name, this.plugin.data);
-            data.channel = args.setchannel;
+            data.channel = args.channel;
             await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
         });
     }
