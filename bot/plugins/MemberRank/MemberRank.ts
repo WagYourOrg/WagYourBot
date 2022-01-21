@@ -213,7 +213,7 @@ class MRTop extends CommandTree<MemberRankData> {
             Command.paginateData(channel, handler, new RichEmbed().setTitle("MemberRankTop"), {
                 length: await handler.database.getUserCount(<string>guild?.id, this.plugin.name),
                 slice: async (start, end) => {
-                    return (await handler.database.getRanks(<string>guild?.id, this.plugin.name, start, end)).map((e, i) => `**${start + i + 1}.** <@${e.member}> : ${e.score}`);
+                    return (await handler.database.getRanks(<string>guild?.id, this.plugin.name, start, end-start)).map((e, i) => `**${start + i + 1}.** <@${e.member}> : ${e.score}`);
                 }
             });
         });
