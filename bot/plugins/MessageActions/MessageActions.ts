@@ -8,7 +8,7 @@ import {
     TakeRoleData
 } from "./MessageActionscommon";
 import { Command, CommandTree, Handler, RichEmbed, Tree, TreeTypes } from "../../Handler";
-import { DMChannel, Message, MessageReaction, NewsChannel, Role, TextBasedChannels, TextChannel } from "discord.js";
+import { DMChannel, Message, MessageReaction, NewsChannel, Role, TextBasedChannel, TextChannel } from "discord.js";
 import { response } from "express";
 
 
@@ -72,7 +72,7 @@ class InternalMessageAction extends CommandTree<MessageActionsData> {
         return false;
     }
 
-    async sendError(error: string, message: { channel: TextBasedChannels }): Promise<Message> {
+    async sendError(error: string, message: { channel: TextBasedChannel }): Promise<Message> {
         (<{message_actions_smuggled_data: Error}><unknown>message).message_actions_smuggled_data = new Error(error);
         //@ts-ignore
         return null;
@@ -366,7 +366,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
 
     }
 
-    async sendError(error: string, message: { channel: TextBasedChannels }): Promise<Message> {
+    async sendError(error: string, message: { channel: TextBasedChannel }): Promise<Message> {
         (<{smuggled_embed_data: Error}><unknown>message).smuggled_embed_data = new Error(error);
         //@ts-ignore
         return null;
