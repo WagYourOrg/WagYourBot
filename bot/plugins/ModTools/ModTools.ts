@@ -297,6 +297,7 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
             if (enabled.includes(this.name)) {
                 console.log("plugin enabled");
                 const data = await handler.database.getGuildPluginData(oldMsg.guild.id, this.name, this.data);
+                console.log(data);
                 if (data.logChanges && data.logChannel) {
                     console.log("will log");
                     const channel = await oldMsg.guild.channels.resolve(data.logChannel);
