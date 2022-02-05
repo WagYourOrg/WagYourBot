@@ -9,7 +9,7 @@ import {
     MessageEmbed,
     MessageEmbedOptions,
     NewsChannel,
-    TextBasedChannels,
+    TextBasedChannel,
     TextChannel,
     User
 } from "discord.js";
@@ -223,7 +223,7 @@ export abstract class Command<T> {
         return this.sendError("You Do Not Have Permission To Run This Command!", message);
     }
 
-    async sendError(error: string, message: { channel: TextBasedChannels }): Promise<Message> {
+    async sendError(error: string, message: { channel: TextBasedChannel }): Promise<Message> {
         return await message.channel.send({embeds: [new RichEmbed()
             .setTitle(this.name)
             .setColor(0xFF0000)
@@ -231,7 +231,7 @@ export abstract class Command<T> {
         ]});
     }
 
-    abstract message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextBasedChannels, message: Message, handler: Handler): Promise<void>;
+    abstract message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextBasedChannel, message: Message, handler: Handler): Promise<void>;
 
     /**
      * do **not** await this... 

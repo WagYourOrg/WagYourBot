@@ -290,11 +290,15 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
 
     private async onMessageChange(oldMsg: Message | PartialMessage, newMsg: Message | PartialMessage | null, handler: Handler) {
         if (oldMsg.author?.bot) return;
+        console.log("message change");
         if (oldMsg.guild !== null) {
+            console.log('has guild');
             const {enabled} = await handler.database.getGuild(oldMsg.guild.id, handler.defaultPrefix);
             if (enabled.includes(this.name)) {
+                console.log("plugin enabled");
                 const data = await handler.database.getGuildPluginData(oldMsg.guild.id, this.name, this.data);
                 if (data.logChanges && data.logChannel) {
+                    console.log("will log");
                     const channel = await oldMsg.guild.channels.resolve(data.logChannel);
                     if (channel && channel.type !== 'GUILD_VOICE' && channel.type !== 'GUILD_STAGE_VOICE') {
                         const embed = new RichEmbed().setTitle(newMsg ? "Message Edited" : "Message Deleted")
