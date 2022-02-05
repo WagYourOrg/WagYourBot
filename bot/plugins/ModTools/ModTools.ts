@@ -38,16 +38,19 @@ class LogMessageEdits extends CommandTree<ModToolsData> {
         this.then("true", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
             data.logChanges = true;
+            handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, data);
             channel.send({embeds: [new RichEmbed().setTitle("LogMessageEdits").setDescription(`Now logging edits and deleted messages in <#${data.logChannel}>`)]});
         })
         .or("false", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
             data.logChanges = false;
+            handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, data);
             channel.send({embeds: [new RichEmbed().setTitle("LogMessageEdits").setDescription(`No longer logging edits and deleted messages in <#${data.logChannel}>`)]});
         })
         .defaultEval(async (args, remainingContent, member, guild, channel, message, handler) => {
             const data = await handler.database.getGuildPluginData(<string>guild?.id, this.plugin.name, this.plugin.data);
             data.logChanges = !data.logChanges;
+            handler.database.setGuildPluginData(<string>guild?.id, this.plugin.name, data);
             channel.send({embeds: [new RichEmbed().setTitle("LogMessageEdits").setDescription(`No longer logging edits and deleted messages in <#${data.logChannel}>`)]});
         })
     }
