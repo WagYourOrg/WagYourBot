@@ -26,7 +26,16 @@ export abstract class Handler extends BaseClient {
     readonly clientID;
 
     protected constructor(clientID: string) {
-        super({ partials: [ "REACTION", "MESSAGE", "USER" ], intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.DIRECT_MESSAGE_REACTIONS] });
+        super({ partials: [ "REACTION", "MESSAGE", "USER" ], intents: [
+            Intents.FLAGS.GUILDS, 
+            Intents.FLAGS.GUILD_MEMBERS, 
+            Intents.FLAGS.GUILD_VOICE_STATES, 
+            Intents.FLAGS.GUILD_PRESENCES, 
+            Intents.FLAGS.GUILD_MESSAGES, 
+            Intents.FLAGS.GUILD_MESSAGE_REACTIONS, 
+            Intents.FLAGS.DIRECT_MESSAGES,
+            Intents.FLAGS.DIRECT_MESSAGE_REACTIONS
+        ] });
         this.clientID = clientID;
         this.registerPlugins();
         this.database = new SQLDatabase(this.plugins.map(e => e.name), clientID);

@@ -300,13 +300,13 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                         const embed = new RichEmbed().setTitle(newMsg ? "Message Edited" : "Message Deleted")
                             .setAuthor(<string>oldMsg.author?.tag ?? "unknown", oldMsg.author?.avatarURL({}) ?? undefined);
                             embed.addField("Channel", oldMsg.channel.toString());
+                        if (oldMsg.content && oldMsg.content.length > 1000) {
+                            embed.addField("From:", `\u200b${oldMsg.content.substring(0, 1000)}`, false);
+                            embed.addField("\u200b", `\u200b${oldMsg.content.substring(1000)}`, false);
+                        } else {
+                            embed.addField("From: ", `\u200b${oldMsg.content}`, false);
+                        }
                         if (newMsg) {
-                            if (oldMsg.content && oldMsg.content.length > 1000) {
-                                embed.addField("From:", `\u200b${oldMsg.content.substring(0, 1000)}`, false);
-                                embed.addField("\u200b", `\u200b${oldMsg.content.substring(1000)}`, false);
-                            } else {
-                                embed.addField("From: ", `\u200b${oldMsg.content}`, false);
-                            }
                             if (newMsg.content && newMsg.content.length > 1000) {
                                 embed.addField("To:", `\u200b${newMsg.content.substring(0, 1000)}`, false);
                                 embed.addField("\u200b", `\u200b${newMsg.content.substring(1000)}`, false);
@@ -317,8 +317,8 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                             embed.setDescription(<string>oldMsg.content);
                         }
                         const attachments = Array.from(oldMsg.attachments);
-                        // console.log(attachments)
                         if (attachments.length) embed.addField("Attachments: ", attachments.map(e => `[${e[1].name}](${e[1].proxyURL}`).join("\n"));
+                        console.log("message changed");
                         (<TextChannel>channel).send({embeds: [embed]});
                     }
                 }
