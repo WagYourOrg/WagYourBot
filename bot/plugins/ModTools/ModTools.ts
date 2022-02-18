@@ -87,25 +87,23 @@ class Mute extends CommandTree<ModToolsData> {
 
     buildCommandTree() {
         this.then("user", {type: TreeTypes.USER})
-            .then("time", {type: TreeTypes.STRING})
+            .then("time", {type: /\d+[smdwM]/})
                 .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     const user = await guild.members.fetch(args.user);
 
                     // parse time into ms
-                    const date = args.time.match(/(\d+)(s|m|d|w|M|y)/);
+                    const date = args.time.match(/(\d+)(s|m|d|w|M)/);
                     if (!date) {
                         channel.send({embeds: [
                             new RichEmbed()
                                 .setTitle("Mute")
-                                .setDescription(`Failed to parse time: ${args.time}, please put in form like 1y\n\`/(\d+)(s|m|d|w|M|y)/\``)
+                                .setDescription(`Failed to parse time: ${args.time}, please put in form like 1y\n\`/(\d+)(s|m|d|w|M)/\``)
                         ]})
                         return;
                     }
 
                     let time = parseInt(date[1]) * 1000;
                     switch (date[2]) {
-                        case 'y':
-                            time *= 13;
                         case 'M':
                             time *= 4;
                         case 'w':
@@ -118,9 +116,18 @@ class Mute extends CommandTree<ModToolsData> {
                             time *= 60;
                     }
 
+                    if (time > 28 * 24 * 60 * 60 * 1000) {
+                        channel.send({embeds: [
+                            new RichEmbed()
+                                .setTitle("Mute")
+                                .setDescription("Max allowed time is 4 weeks (1 month*)!")
+                        ]})
+                        return;
+                    }
+
                     if (user) {
                         await user.timeout(time, args.reason)
-                        const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
+                        const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason).addField("Time", args.time);
                         await channel.send({content: user.toString(), embeds: [warning]});
 
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
@@ -135,8 +142,8 @@ class Mute extends CommandTree<ModToolsData> {
                 const user = await guild.members.fetch(args.user);
 
                 if (user) {
-                    await user.timeout(0, args.reason)
-                    const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
+                    await user.timeout(28 * 24 * 60 * 60 * 1000, args.reason)
+                    const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason).addField("Time", "1M");
                     await channel.send({content: user.toString(), embeds: [warning]});
 
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
