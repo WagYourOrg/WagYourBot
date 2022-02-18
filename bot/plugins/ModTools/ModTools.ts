@@ -1,5 +1,5 @@
 import {CommandTree, Handler, RichEmbed, TreeTypes} from "../../Handler";
-import {Channel, Guild, GuildChannel, Message, PartialMessage, Role, Snowflake, TextChannel} from "discord.js";
+import {Channel, Guild, GuildChannel, GuildMember, Message, PartialMessage, Role, Snowflake, TextChannel} from "discord.js";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class LogChannel extends CommandTree<ModToolsData> {
@@ -57,35 +57,6 @@ class LogMessageEdits extends CommandTree<ModToolsData> {
 
 }
 
-class MuteRole extends CommandTree<ModToolsData> {
-    constructor() {
-        super("muterole", [], "set the role for the mute command.");
-    }
-
-    buildCommandTree() {
-        this.then("role", {type: TreeTypes.ROLE}, async (args, remainingContent, member, guild, channel, message, handler) => {
-            const role = await guild.roles.fetch(args.role);
-            if (role) {
-                const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
-                data.muteRole = role.id;
-                await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
-                channel.send({embeds: [new RichEmbed().setTitle("Log Channel").setDescription(`Mute role set to ${role}.`)]});
-                this.updateMuteRole(guild, role);
-            } else {
-                channel.send({embeds: [new RichEmbed().setTitle("Mute Role").setDescription(`Role \`${args.role}\` not found!`)]});
-            }
-        })
-    }
-
-    updateMuteRole(guild: Guild, role: Role) {
-        for (const channel of guild.channels.cache.values()) {
-            if (channel instanceof GuildChannel && channel.type !== "GUILD_VOICE" && channel.type !== "GUILD_STAGE_VOICE") {
-                channel.permissionOverwrites.create(role, {SEND_MESSAGES: false});
-            }
-        }
-    }
-}
-
 class Warn extends CommandTree<ModToolsData> {
     constructor() {
         super("warn", [], "warn users of their bad deeds.");
@@ -116,25 +87,66 @@ class Mute extends CommandTree<ModToolsData> {
 
     buildCommandTree() {
         this.then("user", {type: TreeTypes.USER})
-            .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
-                const user = await guild.members.fetch(args.user);
-                if (user) {
-                    const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
-                    const role = await guild.roles.fetch(<Snowflake>data.muteRole);
-                    if (data.muteRole && role) {
-                        await user.roles.add(role, args.reason);
+            .then("time", {type: TreeTypes.STRING})
+                .then("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    const user = await guild.members.fetch(args.user);
+
+                    // parse time into ms
+                    const date = args.time.match(/(\d+)(s|m|d|w|M|y)/);
+                    if (!date) {
+                        channel.send({embeds: [
+                            new RichEmbed()
+                                .setTitle("Mute")
+                                .setDescription(`Failed to parse time: ${args.time}, please put in form like 1y\n\`/(\d+)(s|m|d|w|M|y)/\``)
+                        ]})
+                        return;
+                    }
+
+                    let time = parseInt(date[1]) * 1000;
+                    switch (date[2]) {
+                        case 'y':
+                            time *= 13;
+                        case 'M':
+                            time *= 4;
+                        case 'w':
+                            time *= 7;
+                        case 'd':
+                            time *= 24;
+                        case 'm':
+                            time *= 60
+                        case 's':
+                            time *= 60;
+                    }
+
+                    if (user) {
+                        await user.timeout(time, args.reason)
                         const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
                         await channel.send({content: user.toString(), embeds: [warning]});
+
+                        const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                         if (data.logChannel) {
                             (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                         }
                     } else {
-                        channel.send({embeds: [new RichEmbed().setTitle("Mute").setDescription(`Failed to mute user as \`muterole\` isn't set.`)]});
+                        channel.send({embeds: [new RichEmbed().setTitle("Mute").setDescription(`Failed to find user for \`${args.user}\``)]});
+                    }
+                }).or()
+            .or("reason", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                const user = await guild.members.fetch(args.user);
+
+                if (user) {
+                    await user.timeout(0, args.reason)
+                    const warning = new RichEmbed().setTitle("Mute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
+                    await channel.send({content: user.toString(), embeds: [warning]});
+
+                    const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
+                    if (data.logChannel) {
+                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                     }
                 } else {
                     channel.send({embeds: [new RichEmbed().setTitle("Mute").setDescription(`Failed to find user for \`${args.user}\``)]});
                 }
-            })
+            });
     }
 }
 
@@ -149,16 +161,11 @@ class UnMute extends CommandTree<ModToolsData> {
                 const user = await guild.members.fetch(args.user);
                 if (user) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
-                    const role = await guild.roles.fetch(<Snowflake>data.muteRole);
-                    if (data.muteRole && role) {
-                        await user.roles.remove(role, args.reason);
-                        const warning = new RichEmbed().setTitle("UnMute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
-                        await channel.send({content: user.toString(), embeds: [warning]});
-                        if (data.logChannel) {
-                            (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
-                        }
-                    } else {
-                        channel.send({embeds: [new RichEmbed().setTitle("UnMute").setDescription(`Failed to unmute user as \`muterole\` isn't set.`)]});
+                    await user.timeout(null, args.reason);
+                    const warning = new RichEmbed().setTitle("UnMute").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
+                    await channel.send({content: user.toString(), embeds: [warning]});
+                    if (data.logChannel) {
+                        (<null|TextChannel>guild.channels.resolve(data.logChannel))?.send({embeds: [warning.addField("By", member.toString())]});
                     }
                 } else {
                     channel.send({embeds: [new RichEmbed().setTitle("UnMute").setDescription(`Failed to find user for \`${args.user}\``)]});
@@ -287,7 +294,6 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
     registerExtraListeners(handler: Handler) {
         handler.on("messageUpdate", (oldMsg, newMsg) => this.onMessageChange(oldMsg, newMsg, handler));
         handler.on("messageDelete", (oldMsg) => this.onMessageChange(oldMsg, null, handler));
-        handler.on("channelCreate", (channel) => this.onChannelCreate(channel, handler))
     }
 
 
@@ -327,25 +333,11 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
             }
         }
     }
-
-    private async onChannelCreate(channel: Channel, handler: Handler) {
-        if (channel instanceof GuildChannel && channel.type !== "GUILD_VOICE" && channel.type !== "GUILD_STAGE_VOICE") {
-            const {enabled} = await handler.database.getGuild(channel.guild.id, handler.defaultPrefix);
-            if (enabled.includes(this.name)) {
-                const data = await handler.database.getGuildPluginData(channel.guild.id, this.name, this.data);
-                const role = await channel.guild.roles.fetch(<string>data.muteRole);
-                if (data.muteRole && role) {
-                    channel.permissionOverwrites.create(role, {SEND_MESSAGES: false});
-                }
-            }
-        }
-    }
 }
 
 export const plugin = new ModToolsPlugin("ModTools", "Moderator commands and stuff", {muteRole: undefined, logChannel: undefined, logChanges: false});
 plugin.addCommand(new LogChannel());
 plugin.addCommand(new LogMessageEdits());
-plugin.addCommand(new MuteRole());
 plugin.addCommand(new Warn());
 plugin.addCommand(new Mute());
 plugin.addCommand(new UnMute());
