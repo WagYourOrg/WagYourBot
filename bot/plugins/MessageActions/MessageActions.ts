@@ -449,7 +449,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
                 }).or()
             .or()
         .or("--description")
-            .then("contents", {type: /(.+?)( --|$)/, lookahead: true, argFilter: arg => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("contents", {type: /([\s\S]+?)( --|$)/, lookahead: true, argFilter: arg => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 InternalEmbedData.setDescription(args.contents, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
             })
                 .then("next_arg?", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
@@ -460,7 +460,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
         .or("--fieldTitle")
             .then("titleContents", {type: /(.+?)( --fieldDescription|$)/, argFilter: (arg) => <string>arg[1], lookahead: true})
                 .then("--fieldDescription")
-                    .then("descContents", {type: /(.+?)( --|$)/, lookahead: true, argFilter: arg => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    .then("descContents", {type: /([\s\S]+?)( --|$)/, lookahead: true, argFilter: arg => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                         InternalEmbedData.addField(args.titleContents, args.descContents, false, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
                     }).then("--inline", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
                             InternalEmbedData.addField(args.titleContents, args.descContents, true, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
