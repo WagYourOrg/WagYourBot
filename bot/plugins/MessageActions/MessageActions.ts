@@ -92,7 +92,7 @@ class InternalMessageAction extends CommandTree<MessageActionsData> {
             })
             if (afterDeleteReaction) {
                 const nextAction = new InternalMessageAction(afterDeleteReaction);
-                this.then("next_action?", {type: /do (.+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                this.then("next_action?", {type: /do ([\s\S]+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     if (!InternalMessageAction.addDeleteReaction(<{ message_actions_smuggled_data: MessageActionData | undefined }><unknown>message)) {
                         this.sendError(`failed to add delete reaction`, message);
                         return;
@@ -112,7 +112,7 @@ class InternalMessageAction extends CommandTree<MessageActionsData> {
                 })
                 if (afterGiveRole) {
                     const nextAction = new InternalMessageAction(afterGiveRole);
-                    (<Tree<{role: string}, any, {}>><unknown>this).then("next_action?", {type: /do (.+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    (<Tree<{role: string}, any, {}>><unknown>this).then("next_action?", {type: /do ([\s\S]+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                         if (!InternalMessageAction.addRole(<{ message_actions_smuggled_data: MessageActionData | undefined }><unknown>message, await guild.roles.fetch(args.role))) {
                             this.sendError(`failed to set giverole to input \`${args.role}\``, message);
                             return;
@@ -133,7 +133,7 @@ class InternalMessageAction extends CommandTree<MessageActionsData> {
                 })
                 if (afterTakeRole) {
                     const nextAction = new InternalMessageAction(afterTakeRole);
-                    (<Tree<{role: string}, any, {}>><unknown>this).then("next_action?", {type: /do (.+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    (<Tree<{role: string}, any, {}>><unknown>this).then("next_action?", {type: /do ([\s\S]+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                         if (!InternalMessageAction.removeRole(<{ message_actions_smuggled_data: MessageActionData | undefined }><unknown>message, await guild.roles.fetch(args.role))) {
                             (<{message_actions_smuggled_data: Error}><unknown>message).message_actions_smuggled_data = new Error(`failed to set takerole to input \`${args.role}\``);
                             return;
@@ -145,7 +145,7 @@ class InternalMessageAction extends CommandTree<MessageActionsData> {
             this.or()
         }
         if (this.remaining & MessageActionTypes.Respond) {
-            this.then("respond").then("response_data", {type: /.+/m, argFilter: (arg) => <string>arg[0]}, async (
+            this.then("respond").then("response_data", {type: /[\s\S]+/, argFilter: (arg) => <string>arg[0]}, async (
                 args, remainingContent, member, guild, channel, message, handler) => {
                 await this.respond.message(args.response_data, member, guild, channel, message, handler);
                 const data = (<{ smuggled_embed_data: ResponseData | undefined | Error }><unknown>message).smuggled_embed_data;
@@ -222,7 +222,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
         })
         .or("add")
             .then("match", {type: /(\/|`)(.*?[^\\])\1/, argFilter: (arg) => <string>arg[2]})
-                .then("actions", {type: /do (.+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("actions", {type: /do ([\s\S]+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     await this.internal_action.message(args.actions, member, guild, channel, message, handler);
                     const action_data = (<{message_actions_smuggled_data: MessageActionData | undefined | Error}><unknown>message).message_actions_smuggled_data;
                     if (action_data instanceof Error) {
@@ -338,7 +338,7 @@ class MessageAction extends CommandTree<MessageActionsData> {
                     })
                     .or()
                 .or("add")
-                    .then("actions", {type: /do (.+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                    .then("actions", {type: /do ([\s\S]+)/, argFilter: (arg) => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                         const position = parseInt(args.position) - 1;
                         if (position < 0 || position >= data.actions.length) {
@@ -443,7 +443,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
             .then("contents", {type: /(.+?)( --|$)/, lookahead: true, argFilter: arg => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 InternalEmbedData.setTitle(args.contents, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
             })
-                .then("next_arg?", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("next_arg?", {type: /[\s\S]+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     InternalEmbedData.setTitle(args.contents, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
                     await this.message(args["next_arg?"], member, guild, channel, message, handler);
                 }).or()
@@ -452,7 +452,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
             .then("contents", {type: /([\s\S]+?)( --|$)/, lookahead: true, argFilter: arg => <string>arg[1]}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 InternalEmbedData.setDescription(args.contents, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
             })
-                .then("next_arg?", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                .then("next_arg?", {type: /[\s\S]+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                     InternalEmbedData.setDescription(args.contents, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
                     await this.message(args["next_arg?"], member, guild, channel, message, handler);
                 }).or()
@@ -465,11 +465,11 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
                     }).then("--inline", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
                             InternalEmbedData.addField(args.titleContents, args.descContents, true, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
                         })
-                            .then("next_arg?", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                            .then("next_arg?", {type: /[\s\S]+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                                 InternalEmbedData.addField(args.titleContents, args.descContents, true, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
                                 await this.message(args["next_arg?"], member, guild, channel, message, handler);
                             }).or()
-                        .or("next_arg?", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+                        .or("next_arg?", {type: /[\s\S]+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                             InternalEmbedData.addField(args.titleContents, args.descContents, false, <{smuggled_embed_data: ResponseData | undefined}><unknown>message)
                             await this.message(args["next_arg?"], member, guild, channel, message, handler);
                         }).or()
@@ -479,7 +479,7 @@ class InternalEmbedData extends CommandTree<MessageActionsData> {
         .or("--deleteReaction", {}, async (args, remainingContent, member, guild, channel, message, handler) => {
             InternalEmbedData.deleteReaction(<{smuggled_embed_data: ResponseData | undefined}><unknown>message);
         })
-            .then("next_arg?", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            .then("next_arg?", {type: /[\s\S]+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 InternalEmbedData.deleteReaction(<{smuggled_embed_data: ResponseData | undefined}><unknown>message);
                 await this.message(args["next_arg?"], member, guild, channel, message, handler);
             })
