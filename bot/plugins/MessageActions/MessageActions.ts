@@ -517,7 +517,7 @@ class SendEmbed extends CommandTree<MessageActionsData> {
     }
 
     buildCommandTree(): void {
-        this.then("EmbedData", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+        this.then("EmbedData", {type: /[\s\S]+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
             await this.internal_embed.message(args.EmbedData, member, guild, channel, message, handler);
             const data = (<{smuggled_embed_data: ResponseData | undefined | Error}><unknown>message).smuggled_embed_data;
             if (data instanceof Error) {
