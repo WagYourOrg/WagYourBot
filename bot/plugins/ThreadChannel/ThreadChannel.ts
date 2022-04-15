@@ -1,10 +1,9 @@
-import { Guild, Message, Snowflake } from "discord.js";
+import {Guild, Message, Snowflake, ThreadChannel} from "discord.js";
 import { WebPlugin } from "../../../web/WagYourBotWeb";
 import { CommandTree, Handler, RichEmbed, TreeTypes } from "../../Handler";
-import { Plugin } from "../../Handler";
 import {ThreadChannelData} from "./ThreadChannelcommon";
 
-class ThreadChannel extends CommandTree<ThreadChannelData> {
+class ThreadChannelCmd extends CommandTree<ThreadChannelData> {
     
     constructor() {
         super("threadchannel", [], "Manage channels to get auto-threadded.")
@@ -73,6 +72,49 @@ class ThreadChannel extends CommandTree<ThreadChannelData> {
     }
 }
 
+class SetThreadTitle extends CommandTree<ThreadChannelData> {
+    constructor() {
+        super("threadtitle", [], "set title of a thread that's parent is the user's message.", true)
+    }
+    
+    buildCommandTree(): void {
+        this.then("title", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            if (channel.isThread()) {
+                const sm = await (<ThreadChannel>channel).fetchStarterMessage();
+                const owner = await (<ThreadChannel>channel).fetchOwner();
+                if (owner?.id != handler.user?.id) {
+                    message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`Can't set title on non-bot thread!`)]});
+                    return;
+                }
+                if (sm.author.id == member.id) {
+                    await (<ThreadChannel>channel).setName(args.title);
+                    message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`successfully set title of thread to ${args.title}!`)]});
+                } else {
+                    message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`you are not the author of this thread!`)]});
+                }
+            }
+        });
+    }
+}
+
+class ForceSetThreadTitle extends CommandTree<ThreadChannelData> {
+
+    constructor() {
+        super("forcethreadtitle", [], "allow mods to force a thread title change.")
+    }
+    
+    buildCommandTree(): void {
+        this.then("title", {type: /.+/}, async (args, remainingContent, member, guild, channel, message, handler) => {
+            if (channel.isThread()) {
+                await (<ThreadChannel>channel).setName(args.title);
+                message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`successfully set title of thread to ${args.title}!`)]});
+            }
+        });
+    }
+
+}
+
+
 class ThreadChannelPlugin extends WebPlugin<ThreadChannelData> {
 
     registerExtraListeners(handler: Handler) {
@@ -89,7 +131,7 @@ class ThreadChannelPlugin extends WebPlugin<ThreadChannelData> {
                     const chnl = await guild.channels.fetch(message.channel.id);
                     if (chnl) {
                         message.startThread({
-                            name: message.content.substring(0, 25) + "...",
+                            name: message.content.length < 25 ? message.content : message.content.substring(0, 25) + "...",
                             autoArchiveDuration: 1440,
                             reason: "Auto-threaded"
                         });
@@ -103,4 +145,6 @@ class ThreadChannelPlugin extends WebPlugin<ThreadChannelData> {
 }
 
 export const plugin = new ThreadChannelPlugin("ThreadChannel", "thread every message in a channel", { channels: [] });
-plugin.addCommand(new ThreadChannel());
+plugin.addCommand(new ThreadChannelCmd());
+plugin.addCommand(new SetThreadTitle());
+plugin.addCommand(new ForceSetThreadTitle());
