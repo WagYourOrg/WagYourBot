@@ -487,7 +487,7 @@ export abstract class CommandTree<T> extends Command<T> implements Tree {
         if (current.next !== undefined) {
             for (const nextPart of current.next) {
                 if (nextPart.match === undefined) {
-                    if (remainingContent.startsWith(nextPart.name + " ") || remainingContent === nextPart.name) {
+                    if (new RegExp(`^${nextPart.name}\\s+`).test(remainingContent) || remainingContent === nextPart.name) {
                         if (!guild && !nextPart.allowDM) {
                             this.noDM(message);
                             return;
