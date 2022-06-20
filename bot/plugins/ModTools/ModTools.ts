@@ -299,7 +299,9 @@ class Prune extends CommandTree<ModToolsData> {
 
 class ModToolsPlugin extends WebPlugin<ModToolsData> {
     registerExtraListeners(handler: Handler) {
-        handler.on("messageUpdate", (oldMsg, newMsg) => this.onMessageChange(oldMsg, newMsg, handler));
+        handler.on("messageUpdate", (oldMsg, newMsg) => {
+            if (oldMsg != null) this.onMessageChange(oldMsg, newMsg, handler)
+        });
         handler.on("messageDelete", (oldMsg) => this.onMessageChange(oldMsg, null, handler));
     }
 

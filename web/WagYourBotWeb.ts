@@ -103,8 +103,9 @@ export class WagYourBotWeb {
         });
 
         this.app.get('/logout', (req, res) => {
-            req.logout();
-            res.redirect('/');
+            req.logout(() => {
+                res.redirect('/');
+            });
         });
 
         this.app.get('/', async (req, res: BetterResponse) => {

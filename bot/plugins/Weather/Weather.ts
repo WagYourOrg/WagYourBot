@@ -9,7 +9,7 @@ const parser = new Parser();
 
 function parseString(data: string) {
     return new Promise<any>((res, rej) => {
-        parser.parseString(data, (err: Error, resp: any) => {
+        parser.parseString(data, (err: Error | null, resp: any) => {
             if (err) {
                 rej(err);
             }

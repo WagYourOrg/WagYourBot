@@ -24,6 +24,7 @@ class StreamRole extends CommandTree<StreamingRoleData> {
 
 class StreamingRolePlugin extends WebPlugin<StreamingRoleData> {
     registerExtraListeners(handler: Handler) {
+        // @ts-ignore
         handler.on("presenceUpdate", (oldp, newp) => this.onPresence(oldp, newp, handler));
     }
 
