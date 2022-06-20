@@ -558,7 +558,7 @@ class MessageActionsPlugin extends WebPlugin<MessageActionsData> {
 
     static async doDeleteReaction(message: Message) {
         await message.react("🗑️");
-        let reaction: MessageReaction | null = [...(await message.awaitReactions({filter: (reaction) => "🗑️" === reaction.emoji.name && !reaction.me, idle: 60000, max:1})).values()][0]
+        let reaction: MessageReaction | null = [...(await message.awaitReactions({filter: (reaction) => "🗑️" === reaction.emoji.name && reaction.count >= 2, idle: 60000, max:1})).values()][0]
         if (reaction) {
             await message.delete();
         }
