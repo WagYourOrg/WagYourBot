@@ -1,7 +1,7 @@
 import { WebPlugin } from "../../../web/WagYourBotWeb";
 import { StreamingRoleData } from "./StreamingRoleCommon";
 import { CommandTree, Handler, RichEmbed, TreeTypes } from "../../Handler";
-import { Activity, Guild, Presence } from "discord.js";
+import { Activity, ActivityType, Guild, Presence } from "discord.js";
 
 
 class StreamRole extends CommandTree<StreamingRoleData> {
@@ -36,9 +36,9 @@ class StreamingRolePlugin extends WebPlugin<StreamingRoleData> {
                 const data = await handler.database.getGuildPluginData(guild.id, this.name, this.data);
                 const role = await guild.roles.fetch(<string>data.roleid);
                 if (role) {
-                    if (newP?.activities?.filter((e: Activity) => e.type === "STREAMING").length) {
+                    if (newP?.activities?.filter((e: Activity) => e.type === ActivityType.Streaming).length) {
                         newP.member?.roles.add(role, "Streaming");
-                    } else if (oldP?.activities?.filter((e: Activity) => e.type === "STREAMING").length) {
+                    } else if (oldP?.activities?.filter((e: Activity) => e.type === ActivityType.Streaming).length) {
                         oldP.member?.roles.remove(role, "Done Streaming");
                     }
                 }

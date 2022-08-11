@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, realpathSync, symlinkSync } from "fs";
+import { existsSync, mkdirSync, readdirSync} from "fs";
 import { Handler } from "./bot/Handler";
 
 class WagYourBot extends Handler {

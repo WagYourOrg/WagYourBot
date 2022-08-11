@@ -1,5 +1,5 @@
 import {CommandTree, Handler, RichEmbed, TreeTypes} from "../../Handler";
-import {Channel, Guild, GuildChannel, GuildMember, Message, PartialMessage, Role, Snowflake, TextChannel} from "discord.js";
+import {Channel, ChannelType, Guild, GuildChannel, GuildMember, Message, PartialMessage, Role, Snowflake, TextChannel} from "discord.js";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
 
 class LogChannel extends CommandTree<ModToolsData> {
@@ -11,7 +11,7 @@ class LogChannel extends CommandTree<ModToolsData> {
         this.then("set")
             .then("channel", {type: TreeTypes.CHANNEL}, async (args, remainingContent, member, guild, channel, message, handler) => {
                 const chnl = guild.channels.resolve(args.channel);
-                if (chnl && chnl.type !== "GUILD_VOICE" && chnl.type !== "GUILD_STAGE_VOICE") {
+                if (chnl && chnl.type !== ChannelType.GuildVoice && chnl.type !== ChannelType.GuildStageVoice) {
                     const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
                     data.logChannel = chnl.id;
                     await handler.database.setGuildPluginData(guild.id, this.plugin.name, data);
@@ -230,7 +230,7 @@ class Ban extends CommandTree<ModToolsData> {
                     const user = await guild.members.fetch(args.user);
                     if (user) {
                         const data = await handler.database.getGuildPluginData(guild.id, this.plugin.name, this.plugin.data);
-                        await user.ban({reason: args.reason, days: parseInt(args.prune_days)});
+                        await user.ban({reason: args.reason, deleteMessageDays: parseInt(args.prune_days)});
                         const warning = new RichEmbed().setTitle("Ban").setDescription(`${user} (${user.user.tag})`).addField("Reason", args.reason);
                         await user.send({content: user.toString(), embeds: [warning]});
                         if (data.logChannel) {
@@ -314,9 +314,9 @@ class ModToolsPlugin extends WebPlugin<ModToolsData> {
                 const data = await handler.database.getGuildPluginData(oldMsg.guild.id, this.name, this.data);
                 if (data.logChanges && data.logChannel) {
                     const channel = await oldMsg.guild.channels.resolve(data.logChannel);
-                    if (channel && channel.type !== 'GUILD_VOICE' && channel.type !== 'GUILD_STAGE_VOICE') {
+                    if (channel && channel.type !== ChannelType.GuildVoice && channel.type !== ChannelType.GuildStageVoice) {
                         const embed = new RichEmbed().setTitle(newMsg ? "Message Edited" : "Message Deleted")
-                            .setAuthor(<string>oldMsg.author?.tag ?? "unknown", oldMsg.author?.avatarURL({}) ?? undefined);
+                            .setAuthor({name: <string>oldMsg.author?.tag ?? "unknown", iconURL: oldMsg.author?.avatarURL({}) ?? undefined});
                             embed.addField("Channel", oldMsg.channel.toString());
                         if (oldMsg.content && oldMsg.content.length > 1000) {
                             embed.addField("From:", `\u200b${oldMsg.content.substring(0, 1000)}`, false);

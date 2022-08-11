@@ -86,7 +86,9 @@ class SetThreadTitle extends CommandTree<ThreadChannelData> {
                     message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`Can't set title on non-bot thread!`)]});
                     return;
                 }
-                if (sm.author.id == member.id) {
+                if (sm == null) {
+                    message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`Starting message deleted, cannot validate the author, therefore can't change title`)]});
+                } else if (sm.author.id == member.id) {
                     await (<ThreadChannel>channel).setName(args.title);
                     message.reply({embeds: [new RichEmbed().setTitle("ThreadChannel: SetTitle").setDescription(`successfully set title of thread to ${args.title}!`)]});
                 } else {

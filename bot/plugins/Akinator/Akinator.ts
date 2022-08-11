@@ -1,10 +1,11 @@
 import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     DMChannel,
     Guild,
     GuildMember,
     Message,
-    MessageActionRow,
-    MessageButton,
     NewsChannel,
     TextChannel,
     User
@@ -14,7 +15,6 @@ import { Command, Handler, RichEmbed } from "../../Handler";
 import { Aki } from "aki-api.ts";
 import { AkinatorData } from "./Akinatorcommon";
 import { WebPlugin } from "../../../web/WagYourBotWeb";
-import { MessageButtonStyles } from "discord.js/typings/enums";
 
 class Akinator extends Command<AkinatorData> {
     constructor() {
@@ -24,12 +24,12 @@ class Akinator extends Command<AkinatorData> {
     async message(content: string, member: GuildMember | User, guild: Guild | null, channel: TextChannel | DMChannel | NewsChannel, message: Message, handler: Handler): Promise<void> {
         const gd = new Aki('en');
         await gd.start();
-        const actions = new MessageActionRow().addComponents(
-            new MessageButton().setEmoji('✔').setCustomId('0').setLabel("Yes").setStyle(MessageButtonStyles.SUCCESS),
-            new MessageButton().setEmoji('✖').setCustomId('1').setLabel("No").setStyle(MessageButtonStyles.DANGER),
-            new MessageButton().setEmoji('🇵').setCustomId('3').setLabel("Probably").setStyle(MessageButtonStyles.PRIMARY),
-            new MessageButton().setEmoji('ℹ').setCustomId('2').setLabel("Don't Know").setStyle(MessageButtonStyles.SECONDARY),
-            new MessageButton().setEmoji('🇳').setCustomId('4').setLabel("Probably Not").setStyle(MessageButtonStyles.PRIMARY)
+        const actions = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setEmoji('✔').setCustomId('0').setLabel("Yes").setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setEmoji('✖').setCustomId('1').setLabel("No").setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setEmoji('🇵').setCustomId('3').setLabel("Probably").setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setEmoji('ℹ').setCustomId('2').setLabel("Don't Know").setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setEmoji('🇳').setCustomId('4').setLabel("Probably Not").setStyle(ButtonStyle.Primary)
         );
         const msg = await channel.send({embeds: [new RichEmbed().setTitle("Akinator").setDescription(`Question #${gd.currentStep+1}`).addField(gd.question,`Progress: ${Math.floor(gd.progress)}%`)], components: [actions]})
         let collector = msg.createMessageComponentCollector({filter: i => i.user.id == member.id, idle: 60000});

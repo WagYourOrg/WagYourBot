@@ -8,7 +8,7 @@ import {
     TakeRoleData
 } from "./MessageActionscommon";
 import { Command, CommandTree, Handler, RichEmbed, Tree, TreeTypes } from "../../Handler";
-import { DMChannel, Message, MessageReaction, NewsChannel, Role, TextBasedChannel, TextChannel } from "discord.js";
+import { Message, MessageReaction, NewsChannel, Role, TextBasedChannel, TextChannel } from "discord.js";
 import { response } from "express";
 
 

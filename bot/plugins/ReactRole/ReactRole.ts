@@ -1,8 +1,7 @@
-import {Guild, GuildMember, MessageActionRow, MessageButton, Snowflake} from "discord.js";
+import {Guild, GuildMember, ActionRowBuilder, ButtonBuilder, Snowflake, ButtonStyle} from "discord.js";
 import {Command, CommandTree, Handler, RichEmbed, TreeTypes} from "../../Handler";
 import {ReactRoleData} from "./ReactRolecommon";
 import {WebPlugin} from "../../../web/WagYourBotWeb";
-import {MessageButtonStyles} from "discord.js/typings/enums";
 
 class ReactRole extends CommandTree<ReactRoleData> {
     
@@ -316,24 +315,24 @@ class ReactRolePlugin extends WebPlugin<ReactRoleData> {
             return;
         }
         const chnl = guild.channels.resolve(data.channel);
-        if (!chnl || !chnl.isText()) {
+        if (!chnl || !chnl.isTextBased()) {
             return;
         }
         const reactions = Object.keys(data.roles).sort().filter(e => guild.roles.resolve(<string>data.roles[e]) != null);
         for (let i = 0; i < Math.ceil(reactions.length / 25); ++i) {
             const reaction_part = reactions.slice(i*25, i*25+25);
-            const rows: MessageActionRow[] = [];
+            const rows: ActionRowBuilder<ButtonBuilder>[] = [];
             for (let j = 0; j < reaction_part.length / 5; ++j) {
                 const reaction_part_part = reactions.slice(j*5, j*5+5);
-                const row = new MessageActionRow();
+                const row = new ActionRowBuilder<ButtonBuilder>();
                 for (const reaction of reaction_part_part) {
                     const role = guild.roles.resolve(<string>data.roles[reaction]);
                     row.addComponents(
-                        new MessageButton()
+                        new ButtonBuilder()
                             .setCustomId(`ReactRole:${reaction}`)
                             .setEmoji(reaction)
                             .setLabel(role?.name ?? "unknown")
-                            .setStyle(MessageButtonStyles.PRIMARY)
+                            .setStyle(ButtonStyle.Primary)
                     );
                 }
                 rows.push(row);

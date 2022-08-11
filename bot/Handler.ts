@@ -3,19 +3,24 @@ import {
     DMChannel,
     Guild,
     GuildMember,
-    Intents,
-    Message, MessageActionRow,
-    MessageButton,
-    MessageEmbed,
-    MessageEmbedOptions,
+    Message, ActionRowBuilder,
+    ButtonBuilder,
+    EmbedBuilder,
+    ButtonStyle,
     NewsChannel,
+    Partials,
     TextBasedChannel,
     TextChannel,
-    User
+    User,
+    GatewayIntentBits,
+    EmbedData
 } from "discord.js";
 import { SQLDatabase } from "../Database";
 import { Database, PluginAliases, PluginPerms, PluginSlug } from "../Structures";
-import { MessageButtonStyles } from "discord.js/typings/enums";
+import {SlashCommandBuilder} from "@discordjs/builders";
+import { 
+    APIEmbed 
+} from 'discord-api-types/v10';
 
 
 export abstract class Handler extends BaseClient {
@@ -26,15 +31,15 @@ export abstract class Handler extends BaseClient {
     readonly clientID;
 
     protected constructor(clientID: string) {
-        super({ partials: [ "REACTION", "MESSAGE", "USER" ], intents: [
-            Intents.FLAGS.GUILDS, 
-            Intents.FLAGS.GUILD_MEMBERS, 
-            Intents.FLAGS.GUILD_VOICE_STATES, 
-            Intents.FLAGS.GUILD_PRESENCES, 
-            Intents.FLAGS.GUILD_MESSAGES, 
-            Intents.FLAGS.GUILD_MESSAGE_REACTIONS, 
-            Intents.FLAGS.DIRECT_MESSAGES,
-            Intents.FLAGS.DIRECT_MESSAGE_REACTIONS
+        super({ partials: [Partials.Reaction, Partials.Message, Partials.User ], intents: [
+            GatewayIntentBits.Guilds, 
+            GatewayIntentBits.GuildMembers, 
+            GatewayIntentBits.GuildVoiceStates, 
+            GatewayIntentBits.GuildPresences, 
+            GatewayIntentBits.GuildMessages, 
+            GatewayIntentBits.GuildMessageReactions, 
+            GatewayIntentBits.DirectMessages,
+            GatewayIntentBits.DirectMessageReactions
         ] });
         this.clientID = clientID;
         this.registerPlugins();
@@ -157,11 +162,23 @@ export class Plugin<T> {
     }
 }
 
-export class RichEmbed extends MessageEmbed {
-    constructor(data?: MessageEmbed | MessageEmbedOptions) {
-        super(data);
+export class RichEmbed extends EmbedBuilder {
+    constructor(data?: EmbedData | APIEmbed | RichEmbed) {
+        super(data instanceof RichEmbed ? data.data : data);
         this.setTimestamp();
-        this.setFooter("Wagyourtail 2021. bot.wagyourtail.xyz");
+        this.setFooter({text: "Wagyourtail 2021. bot.wagyourtail.xyz"});
+    }
+
+    /**
+     * @deprecated
+     * @param title 
+     * @param desc 
+     * @param inline 
+     * @returns 
+     */
+    addField(title: string, desc: string, inline?: boolean) {
+        this.addFields({name: title, value: desc, inline: inline})
+        return this
     }
 }
 
@@ -240,20 +257,20 @@ export abstract class Command<T> {
         let currentPage = 0;
         let maxPages = Math.ceil(lines.length / linesPerPage);
         if (maxPages > 1) {
-            let actions = new MessageActionRow().addComponents(
-                new MessageButton().setEmoji("⬅️").setCustomId("back").setStyle(MessageButtonStyles.PRIMARY),
-                new MessageButton().setEmoji("➡️").setCustomId("forward").setStyle(MessageButtonStyles.PRIMARY));
-            actions.components[0].setDisabled(true);
+            let actions = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder().setEmoji("⬅️").setCustomId("back").setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setEmoji("➡️").setCustomId("forward").setStyle(ButtonStyle.Primary));
+            (<ButtonBuilder>actions.components[0]).setDisabled(true);
             let message = await channel.send({embeds: [new RichEmbed(baseEmbed).setDescription((await lines.slice(0, linesPerPage)).join("\n")).addField("Page", `${currentPage + 1} / ${maxPages}`)], components: [actions]});
             message.createMessageComponentCollector({filter: (i) => true, idle: 60000}).on('collect', async i => {
                 switch (i.customId) {
                     case "back":
-                        actions.components[1].setDisabled(false);
-                        if (--currentPage == 0) actions.components[0].setDisabled(true);
+                        (<ButtonBuilder>actions.components[1]).setDisabled(false);
+                        if (--currentPage == 0) (<ButtonBuilder>actions.components[0]).setDisabled(true);
                         break;
                     case "forward":
-                        actions.components[0].setDisabled(false);
-                        if (++currentPage + 1 >= maxPages) actions.components[1].setDisabled(true);
+                        (<ButtonBuilder>actions.components[0]).setDisabled(false);
+                        if (++currentPage + 1 >= maxPages) (<ButtonBuilder>actions.components[1]).setDisabled(true);
                         break;
                     default:
                 }
